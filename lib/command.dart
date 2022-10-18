@@ -34,10 +34,10 @@ abstract class RunnerCommand extends Command<int> {
         valueHelp: configPathOption.valueHelp ?? configPathOption.defaultsTo,
       )
       ..addMultiOption(
-        includeExtOption.name,
-        abbr: includeExtOption.abbr,
-        help: includeExtOption.help,
-        valueHelp: includeExtOption.valueHelp ?? includeExtOption.defaultsTo,
+        excludePathOption.name,
+        abbr: excludePathOption.abbr,
+        help: excludePathOption.help,
+        valueHelp: excludePathOption.valueHelp ?? excludePathOption.defaultsTo,
       );
   }
 
@@ -57,34 +57,20 @@ class WatchCommand extends RunnerCommand {
   Future<int> run() async {
     final Completer<int> completer = Completer();
 
-    AssetList? list = await AssetList.readAssetDir(
-      sharedOptions.listUri.toString(),
-      sharedOptions.assetUri.map((Uri uri) => uri.toString()).toList()
-    );
+    AssetList? list = await AssetList.readAssetDir(sharedOptions);
     await list?.writeListFile();
 
-    for (final Uri uri in sharedOptions.assetUri) {
-      final String path = uri.toString();
+    for (final String path in sharedOptions.assetPaths) {
       Watcher(path).events.listen((WatchEvent e) async {
         try {
           if (split(e.path).length - split(path).length > 1) return;
-          if (equals(sharedOptions.listUri.toString(), e.path)) return;
-          if (isWithin(sharedOptions.dustbinUri.toString(), e.path)) return;
-
-          final String ext = extension(e.path).substring(1);
-          if (!sharedOptions.includeExt.contains(ext)) return;
+          if (equals(sharedOptions.listPath, e.path)) return;
+          if (isWithin(sharedOptions.dustbinPath, e.path)) return;
+          if (sharedOptions.isExcludePath(e.path)) return;
 
           if (e.type == ChangeType.REMOVE) {
-            await list?.remove(e.path, sharedOptions);
-          } else if (e.type == ChangeType.ADD) {
-            await list?.add(e.path);
-          } else if (e.type == ChangeType.MODIFY) {
-            await list?.remove(
-              e.path,
-              sharedOptions,
-              useMemory: true,
-              nowWrite: false,
-            );
+            await list?.remove(e.path);
+          } else if (e.type == ChangeType.ADD || e.type == ChangeType.MODIFY) {
             await list?.add(e.path);
           }
         } catch (err) {
@@ -95,12 +81,12 @@ class WatchCommand extends RunnerCommand {
       });
     }
 
-    Watcher(sharedOptions.listUri.toString()).events.listen((WatchEvent e) async {
+    Watcher(sharedOptions.listPath).events.listen((WatchEvent e) async {
       try {
-        final AssetList? newList = await AssetList.readListFile(sharedOptions.listUri.toString());
+        final AssetList? newList = await AssetList.readListFile(sharedOptions);
         if (newList.toString() == list.toString()) return;
 
-        await newList?.checkListAsset();
+        await newList?.checkAsset();
 
         if (newList.toString() == list.toString()) return;
 
@@ -128,10 +114,7 @@ class BuildAssetCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
-    final AssetList? list = await AssetList.readAssetDir(
-      sharedOptions.listUri.toString(),
-      sharedOptions.assetUri.map((Uri uri) => uri.toString()).toList()
-    );
+    final AssetList? list = await AssetList.readAssetDir(sharedOptions);
     await list?.writeListFile();
     return 0;
   }
@@ -148,8 +131,8 @@ class BuildListCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
-    final AssetList? list = await AssetList.readListFile(sharedOptions.listUri.toString());
-    await list?.checkListAsset();
+    final AssetList? list = await AssetList.readListFile(sharedOptions);
+    await list?.checkAsset();
     await list?.writeListFile();
     return 0;
   }

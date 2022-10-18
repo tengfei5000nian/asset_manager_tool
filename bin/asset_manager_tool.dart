@@ -1,6 +1,7 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:asset_manager_tool/command.dart';
+import 'package:asset_manager_tool/logger.dart';
 
 void main(List<String> arguments) async {
   try {
@@ -15,6 +16,6 @@ void main(List<String> arguments) async {
     final ArgResults argResults = commandRunner.parse(arguments);
     await commandRunner.runCommand(argResults);
   } catch (err) {
-    print(err);
+    logger.severe('main', err.toString());
   }
 }

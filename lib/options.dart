@@ -1,4 +1,6 @@
 import 'package:args/args.dart';
+import 'package:glob/glob.dart';
+import 'package:yaml/yaml.dart';
 
 import 'config.dart';
 
@@ -42,53 +44,108 @@ const Option configPathOption = Option(
   help: 'config文件路径',
   defaultsTo: 'pubspec.yaml',
 );
-const Option includeExtOption = Option(
-  name: 'include-ext',
-  abbr: 'i',
-  help: '跟踪的asset资产文件扩展名',
-  defaultsTo: 'png,jpg,jpeg,webp,gif,ttf,txt,json',
+const Option excludePathOption = Option(
+  name: 'exclude-path',
+  abbr: 'e',
+  help: '排除的asset资产文件',
+  defaultsTo: '**/asset_list.dart',
 );
 
 class SharedOptions {
-  final List<Uri> assetUri;
-  final Uri dustbinUri;
-  final Uri listUri;
-  final List<String> includeExt;
+  final List<String> assetPaths;
+  final String dustbinPath;
+  final String listPath;
+  final List<String> excludePaths;
 
   SharedOptions({
-    required this.assetUri,
-    required this.dustbinUri,
-    required this.listUri,
-    required this.includeExt,
+    required this.assetPaths,
+    required this.dustbinPath,
+    required this.listPath,
+    required this.excludePaths,
   });
 
-  factory SharedOptions.create(ArgResults? argResults) {
-    final Map<String, dynamic>? flutter = getConfig(configPathOption.defaultsTo);
-    final Map<String, dynamic>? config = getConfig((argResults?[configPathOption.name] as String?) ?? configPathOption.defaultsTo);
+  factory SharedOptions.defaults() {
     return SharedOptions(
-      assetUri: (
-        (flutter?['assets'] as List<String>?) ?? (
-          (argResults?[assetPathOption.name] as List<String>?)?.isNotEmpty ?? false
-          ? (argResults?[assetPathOption.name] as List<String>)
-          : [(config?[assetPathOption.name] as String?) ?? assetPathOption.defaultsTo]
-        )
-      ).map(Uri.parse).toList(),
-      dustbinUri: Uri.parse((argResults?[dustbinPathOption.name] as String?) ?? (config?[dustbinPathOption.name] as String?) ?? dustbinPathOption.defaultsTo),
-      listUri: Uri.parse((argResults?[listPathOption.name] as String?) ?? (config?[listPathOption.name] as String?) ?? listPathOption.defaultsTo),
-      includeExt: (argResults?[includeExtOption.name] as List<String>?)?.isNotEmpty ?? false
-        ? (argResults?[includeExtOption.name] as List<String>)
-        : ((config?[includeExtOption.name] as String?) ?? includeExtOption.defaultsTo).split(','),
+      assetPaths: dustbinPathOption.defaultsTo.split(','),
+      dustbinPath: dustbinPathOption.defaultsTo,
+      listPath: listPathOption.defaultsTo,
+      excludePaths: excludePathOption.defaultsTo.split(','),
     );
+  }
+
+  factory SharedOptions.form(Map? json) {
+    return SharedOptions(
+      assetPaths: json?[assetPathOption.name] is List
+        ? List<String>.from(json![assetPathOption.name])
+        : [],
+      dustbinPath: (json?[dustbinPathOption.name] as String?) ?? '',
+      listPath: (json?[listPathOption.name] as String?) ?? '',
+      excludePaths: json?[excludePathOption.name] is List
+        ? List<String>.from(json![excludePathOption.name])
+        : []
+    );
+  }
+
+  factory SharedOptions.create(ArgResults? argResults) {
+    final YamlMap? yaml = getConfig(configPathOption.defaultsTo);
+    final SharedOptions? yamlOptions = formatToolOptions(yaml);
+
+    final List<String>? flutterAssets = formatAssetList(yaml);
+
+    final SharedOptions? toolOptions = formatToolOptions(
+      getConfig(argResults?[configPathOption.name] as String?)
+    );
+
+    final SharedOptions defaultOptions = SharedOptions.defaults();
+
+    return SharedOptions(
+      assetPaths: flutterAssets?.isNotEmpty ?? false
+        ? flutterAssets!
+        : (
+          yamlOptions?.assetPaths.isNotEmpty ?? false
+            ? yamlOptions!.assetPaths
+            : (
+              toolOptions?.assetPaths.isNotEmpty ?? false
+                ? toolOptions!.assetPaths
+                : defaultOptions.assetPaths
+            )
+        ),
+      dustbinPath: yamlOptions?.dustbinPath.isNotEmpty ?? false
+        ? yamlOptions!.dustbinPath
+        : (
+          toolOptions?.dustbinPath.isNotEmpty ?? false
+            ? toolOptions!.dustbinPath
+            : defaultOptions.dustbinPath
+        ),
+      listPath: yamlOptions?.listPath.isNotEmpty ?? false
+        ? yamlOptions!.listPath
+        : (
+          toolOptions?.listPath.isNotEmpty ?? false
+            ? toolOptions!.listPath
+            : defaultOptions.listPath
+        ),
+      excludePaths: yamlOptions?.excludePaths.isNotEmpty ?? false
+        ? yamlOptions!.excludePaths
+        : (
+          toolOptions?.excludePaths.isNotEmpty ?? false
+            ? toolOptions!.excludePaths
+            : defaultOptions.excludePaths
+        ),
+    );
+  }
+
+  bool isExcludePath(String path) {
+    return excludePaths.every((String p) => Glob(p).matches(path));
   }
 
   @override
   String toString() {
     final Map<String, String> data = {};
 
-    data['assetUri'] = assetUri.map((Uri uri) => uri.toString()).join(',');
-    data['dustbinUri'] = dustbinUri.toString();
-    data['listUri'] = listUri.toString();
-    data['includeExt'] = includeExt.join(',');
+    data['assetPaths'] = assetPaths.join(',');
+    data['dustbinPath'] = dustbinPath;
+    data['listPath'] = listPath;
+    data['excludePaths'] = excludePaths.join(',');
     
     return data.toString();
   }
