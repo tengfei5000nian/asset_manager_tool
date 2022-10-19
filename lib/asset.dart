@@ -14,15 +14,27 @@ class AssetItem {
     final File file = File(path);
     if (await file.exists()) {
       final Uint8List content = await file.readAsBytes();
-      final Digest digest = md5.convert(content);
+      final Digest contentDigest = md5.convert(content);
+      final Digest basenameDigest = md5.convert(path.codeUnits);
+      final Digest digest = md5.convert('$contentDigest$basenameDigest'.codeUnits);
       final List<String> names = split(path.replaceFirst(rootPrefix(path), '').replaceAll(RegExp('[\\.\\_\\-\\s]+'), '/'));
-      final String name = names.removeAt(0) + names.map((String name) => name
+      String name = names.removeAt(0) + names.map((String name) => name
         .toLowerCase()
         .replaceRange(0, 1, name
           .substring(0, 1)
           .toUpperCase()
         )
       ).join();
+      for (final String key in options.nameReplaces.keys) {
+        final RegExp re = RegExp('^$key');
+        if (!re.hasMatch(name)) continue;
+        name = name.replaceFirst(re, options.nameReplaces[key] ?? '');
+        name = name.replaceRange(0, 1, name
+          .substring(0, 1)
+          .toLowerCase()
+        );
+        break;
+      }
       return AssetItem(
         path: path,
         name: name,

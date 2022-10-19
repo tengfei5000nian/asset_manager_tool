@@ -10,7 +10,7 @@ SharedOptions? formatToolOptions(YamlMap? data) {
   final config = data['asset_manager_tool'];
   if (config is! YamlMap) return null;
 
-  return SharedOptions.form(config.value);
+  return SharedOptions.formJSON(config.value);
 }
 
 List<String>? formatAssetList(YamlMap? data) {

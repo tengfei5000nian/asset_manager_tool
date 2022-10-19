@@ -1,31 +1,31 @@
 abstract class AssetList {
-  static const AssetItem assetsFontsIconfontItalicTtf = AssetItem(
+  static const AssetItem fontsIconfontItalicTtf = AssetItem(
     'assets/fonts/iconfont-Italic.ttf',
-    '21c761507ccc86c1794f37c0f0a92b66',
+    '0698e937b791f8d530cf779f9ba7db0b',
   );
 
-  static const AssetItem assetsFontsIconfontRegularTtf = AssetItem(
+  static const AssetItem fontsIconfontRegularTtf = AssetItem(
     'assets/fonts/iconfont-Regular.ttf',
-    '21c761507ccc86c1794f37c0f0a92b66',
+    '4959c8a0be9096f901f43fc315a390c2',
   );
 
-  static const ImageAssetItem assetsImgCoverJpg = ImageAssetItem(
+  static const ImageAssetItem imgCoverJpg = ImageAssetItem(
     'assets/img/cover.jpg',
-    '505c2ba60f506c594e8e4aec20d40836',
+    '68d6cda50b4b904fb05e1fc0d7728e76',
     1200,
     799,
   );
 
-  static const ImageAssetItem assetsImgLodingPng = ImageAssetItem(
+  static const ImageAssetItem imgLodingPng = ImageAssetItem(
     'assets/img/loding.png',
-    'af4d5382e4b103f8d2cf48cf21559da4',
+    'e1ea293bcdc8441e74bbd88bbe2177ec',
     204,
     204,
   );
 
-  static const AssetItem assetsOptionsDataJson = AssetItem(
+  static const AssetItem optionsDataJson = AssetItem(
     'assets/options/data.json',
-    '1d12b4593d8498837edfd2fa0efdd118',
+    'e50c38a7550826620d721e69d7f189c7',
   );
 }
 

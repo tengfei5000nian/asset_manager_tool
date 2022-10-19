@@ -22,20 +22,16 @@ class Option {
 
 const Option assetPathOption = Option(
   name: 'asset-path',
-  abbr: 'a',
-  help: '监听的asset资产路径，优先使用flutter中的asset，其次使用配置文件或命令行输入',
-  valueHelp: 'flutter[assets] or assets/',
+  help: '监听的asset资产路径',
   defaultsTo: 'assets/',
 );
 const Option dustbinPathOption = Option(
   name: 'dustbin-path',
-  abbr: 'c',
   help: '删除的asset资产垃圾箱文件夹dustbin路径',
   defaultsTo: '.asset_dustbin/',
 );
 const Option listPathOption = Option(
   name: 'list-path',
-  abbr: 'm',
   help: '通过asset资产创建的清单list',
   defaultsTo: 'asset_list.dart',
 );
@@ -46,91 +42,155 @@ const Option configPathOption = Option(
 );
 const Option excludePathOption = Option(
   name: 'exclude-path',
-  abbr: 'e',
   help: '排除的asset资产文件',
   defaultsTo: '**/asset_list.dart',
+);
+const Option nameReplaceOption = Option(
+  name: 'name-replace',
+  help: 'asset资产实例名替换',
+  defaultsTo: 'assets:',
 );
 
 class SharedOptions {
   final List<String> assetPaths;
   final String dustbinPath;
   final String listPath;
+  final String configPath;
   final List<String> excludePaths;
+  final Map<String, String?> nameReplaces;
 
   SharedOptions({
     required this.assetPaths,
     required this.dustbinPath,
     required this.listPath,
+    required this.configPath,
     required this.excludePaths,
+    required this.nameReplaces,
   });
 
   factory SharedOptions.defaults() {
     return SharedOptions(
-      assetPaths: dustbinPathOption.defaultsTo.split(','),
+      assetPaths: assetPathOption.defaultsTo.split(','),
       dustbinPath: dustbinPathOption.defaultsTo,
       listPath: listPathOption.defaultsTo,
+      configPath: configPathOption.defaultsTo,
       excludePaths: excludePathOption.defaultsTo.split(','),
+      nameReplaces: nameReplaceOption.defaultsTo.split(',').fold({}, (Map<String, String?> data, String item) {
+        final List<String> value = item.split(':');
+        data[value.first] = value.length >= 2 ? value[1] : null;
+        return data;
+      }),
     );
   }
 
-  factory SharedOptions.form(Map? json) {
+  factory SharedOptions.formJSON(Map? json) {
     return SharedOptions(
       assetPaths: json?[assetPathOption.name] is List
         ? List<String>.from(json![assetPathOption.name])
         : [],
       dustbinPath: (json?[dustbinPathOption.name] as String?) ?? '',
       listPath: (json?[listPathOption.name] as String?) ?? '',
+      configPath: (json?[configPathOption.name] as String?) ?? '',
       excludePaths: json?[excludePathOption.name] is List
         ? List<String>.from(json![excludePathOption.name])
-        : []
+        : [],
+      nameReplaces: json?[nameReplaceOption.name] is Map
+        ? Map<String, String?>.from(json![nameReplaceOption.name])
+        : {},
+    );
+  }
+
+  factory SharedOptions.formARG(ArgResults? argResults) {
+    return SharedOptions(
+      assetPaths: argResults?[assetPathOption.name] is List
+        ? List<String>.from(argResults![assetPathOption.name])
+        : [],
+      dustbinPath: argResults?[dustbinPathOption.name] is String
+        ? argResults![dustbinPathOption.name]
+        : '',
+      listPath: argResults?[listPathOption.name] is String
+        ? argResults![listPathOption.name]
+        : '',
+      configPath: argResults?[configPathOption.name] is String
+        ? argResults![configPathOption.name]
+        : '',
+      excludePaths: argResults?[excludePathOption.name] is List
+        ? List<String>.from(argResults![excludePathOption.name])
+        : [],
+      nameReplaces: argResults?[nameReplaceOption.name] is Map
+        ? Map<String, String?>.from(argResults![nameReplaceOption.name])
+        : {},
     );
   }
 
   factory SharedOptions.create(ArgResults? argResults) {
-    final YamlMap? yaml = getConfig(configPathOption.defaultsTo);
-    final SharedOptions? yamlOptions = formatToolOptions(yaml);
-
-    final List<String>? flutterAssets = formatAssetList(yaml);
-
-    final SharedOptions? toolOptions = formatToolOptions(
-      getConfig(argResults?[configPathOption.name] as String?)
-    );
-
     final SharedOptions defaultOptions = SharedOptions.defaults();
 
+    final YamlMap? yaml = getConfig(configPathOption.defaultsTo);
+    final SharedOptions? yamlOptions = formatToolOptions(yaml);
+    final List<String>? flutterAssets = formatAssetList(yaml);
+
+    final SharedOptions argOptions = SharedOptions.formARG(argResults);
+
+    print(argOptions);
+
+    final SharedOptions? toolOptions = formatToolOptions(
+      getConfig(
+        argOptions.configPath.isNotEmpty
+          ? argOptions.configPath
+          : (
+            yamlOptions?.configPath.isNotEmpty ?? false
+              ? yamlOptions!.configPath
+              : defaultOptions.configPath
+          )
+      )
+    );
+
     return SharedOptions(
-      assetPaths: flutterAssets?.isNotEmpty ?? false
-        ? flutterAssets!
-        : (
-          yamlOptions?.assetPaths.isNotEmpty ?? false
+      assetPaths: argOptions.assetPaths.isNotEmpty
+        ? argOptions.assetPaths
+        : toolOptions?.assetPaths.isNotEmpty ?? false
+          ? toolOptions!.assetPaths
+          : yamlOptions?.assetPaths.isNotEmpty ?? false
             ? yamlOptions!.assetPaths
-            : (
-              toolOptions?.assetPaths.isNotEmpty ?? false
-                ? toolOptions!.assetPaths
-                : defaultOptions.assetPaths
-            )
-        ),
-      dustbinPath: yamlOptions?.dustbinPath.isNotEmpty ?? false
-        ? yamlOptions!.dustbinPath
-        : (
-          toolOptions?.dustbinPath.isNotEmpty ?? false
-            ? toolOptions!.dustbinPath
-            : defaultOptions.dustbinPath
-        ),
-      listPath: yamlOptions?.listPath.isNotEmpty ?? false
-        ? yamlOptions!.listPath
-        : (
-          toolOptions?.listPath.isNotEmpty ?? false
-            ? toolOptions!.listPath
-            : defaultOptions.listPath
-        ),
-      excludePaths: yamlOptions?.excludePaths.isNotEmpty ?? false
-        ? yamlOptions!.excludePaths
-        : (
-          toolOptions?.excludePaths.isNotEmpty ?? false
-            ? toolOptions!.excludePaths
-            : defaultOptions.excludePaths
-        ),
+            : flutterAssets?.isNotEmpty ?? false
+              ? flutterAssets!
+              : defaultOptions.assetPaths,
+      dustbinPath: argOptions.dustbinPath.isNotEmpty
+        ? argOptions.dustbinPath
+        : toolOptions?.dustbinPath.isNotEmpty ?? false
+          ? toolOptions!.dustbinPath
+          : yamlOptions?.dustbinPath.isNotEmpty ?? false
+            ? yamlOptions!.dustbinPath
+            : defaultOptions.dustbinPath,
+      listPath: argOptions.listPath.isNotEmpty
+        ? argOptions.listPath
+        : toolOptions?.listPath.isNotEmpty ?? false
+          ? toolOptions!.listPath
+          : yamlOptions?.listPath.isNotEmpty ?? false
+            ? yamlOptions!.listPath
+            : defaultOptions.listPath,
+      configPath: argOptions.configPath.isNotEmpty
+        ? argOptions.configPath
+        : toolOptions?.configPath.isNotEmpty ?? false
+          ? toolOptions!.configPath
+          : yamlOptions?.configPath.isNotEmpty ?? false
+            ? yamlOptions!.configPath
+            : defaultOptions.configPath,
+      excludePaths: argOptions.excludePaths.isNotEmpty
+        ? argOptions.excludePaths
+        : toolOptions?.excludePaths.isNotEmpty ?? false
+          ? toolOptions!.excludePaths
+          : yamlOptions?.excludePaths.isNotEmpty ?? false
+            ? yamlOptions!.excludePaths
+            : defaultOptions.excludePaths,
+      nameReplaces: argOptions.nameReplaces.isNotEmpty
+        ? argOptions.nameReplaces
+        : toolOptions?.nameReplaces.isNotEmpty ?? false
+          ? toolOptions!.nameReplaces
+          : yamlOptions?.nameReplaces.isNotEmpty ?? false
+            ? yamlOptions!.nameReplaces
+            : defaultOptions.nameReplaces,
     );
   }
 
@@ -146,6 +206,9 @@ class SharedOptions {
     data['dustbinPath'] = dustbinPath;
     data['listPath'] = listPath;
     data['excludePaths'] = excludePaths.join(',');
+    data['nameReplaces'] = nameReplaces.keys.map((String key) {
+      return '$key:${nameReplaces[key]}';
+    }).join(',');
     
     return data.toString();
   }

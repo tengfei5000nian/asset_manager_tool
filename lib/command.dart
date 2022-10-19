@@ -38,6 +38,12 @@ abstract class RunnerCommand extends Command<int> {
         abbr: excludePathOption.abbr,
         help: excludePathOption.help,
         valueHelp: excludePathOption.valueHelp ?? excludePathOption.defaultsTo,
+      )
+      ..addMultiOption(
+        nameReplaceOption.name,
+        abbr: nameReplaceOption.abbr,
+        help: nameReplaceOption.help,
+        valueHelp: nameReplaceOption.valueHelp ?? nameReplaceOption.defaultsTo,
       );
   }
 
@@ -60,38 +66,36 @@ class WatchCommand extends RunnerCommand {
     AssetList? list = await AssetList.readAssetDir(sharedOptions);
     await list?.writeListFile();
 
-    for (final String path in sharedOptions.assetPaths) {
-      Watcher(path).events.listen((WatchEvent e) async {
-        try {
-          if (split(e.path).length - split(path).length > 1) return;
-          if (equals(sharedOptions.listPath, e.path)) return;
-          if (isWithin(sharedOptions.dustbinPath, e.path)) return;
-          if (sharedOptions.isExcludePath(e.path)) return;
-
-          if (e.type == ChangeType.REMOVE) {
-            await list?.remove(e.path);
-          } else if (e.type == ChangeType.ADD || e.type == ChangeType.MODIFY) {
-            await list?.add(e.path);
-          }
-        } catch (err) {
-          completer.completeError(err);
-        }
-      }).onError((err) {
-        completer.completeError(err);
-      });
-    }
-
-    Watcher(sharedOptions.listPath).events.listen((WatchEvent e) async {
+    Watcher(current).events.listen((WatchEvent e) async {
       try {
-        final AssetList? newList = await AssetList.readListFile(sharedOptions);
-        if (newList.toString() == list.toString()) return;
+        if (!isWithin(current, e.path)) return;
+        final String changePath = relative(e.path, from: current);
 
-        await newList?.checkAsset();
+        if (equals(sharedOptions.listPath, changePath)) {
+          final AssetList? newList = await AssetList.readListFile(sharedOptions);
+          if (newList.toString() == list.toString()) return;
 
-        if (newList.toString() == list.toString()) return;
+          await newList?.checkAsset();
 
-        await newList?.writeListFile();
-        list = newList;
+          if (newList.toString() == list.toString()) return;
+
+          await newList?.writeListFile();
+          list = newList;
+        } else {
+          for (final String path in sharedOptions.assetPaths) {
+            if (!(
+              (isWithin(path, changePath) && split(changePath).length - split(path).length == 1) ||
+              equals(path, changePath)
+            )) continue;
+            if (sharedOptions.isExcludePath(changePath)) continue;
+
+            if (e.type == ChangeType.REMOVE) {
+              await list?.remove(changePath);
+            } else if (e.type == ChangeType.ADD || e.type == ChangeType.MODIFY) {
+              await list?.add(changePath);
+            }
+          }
+        }
       } catch (err) {
         completer.completeError(err);
       }

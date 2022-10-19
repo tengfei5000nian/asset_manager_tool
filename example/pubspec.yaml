@@ -30,3 +30,6 @@ flutter:
 asset_manager_tool:
   dustbin-path: assets/.asset_dustbin/
   list-path: assets/asset_list.dart
+  name-replace:
+    assets:
+

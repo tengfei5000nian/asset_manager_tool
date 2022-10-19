@@ -1,3 +1,4 @@
+import 'package:io/ansi.dart';
 import 'package:logging/logging.dart' as g;
 
 class Logger {
@@ -6,7 +7,13 @@ class Logger {
   Logger(String name) {
     g.Logger.root.level = g.Level.ALL;
     g.Logger.root.onRecord.listen((g.LogRecord record) {
-      print('[${record.time}]${record.loggerName} ${record.level}: ${record.message}');
+      String? msg;
+      if (record.level == g.Level.WARNING) {
+        msg = yellow.wrap('[${record.time}] ${record.loggerName}: ${record.message}');
+      } else if (record.level == g.Level.SEVERE) {
+        msg = red.wrap('[${record.time}] ${record.loggerName}: ${record.message}');
+      }
+      print(msg);
     });
     lg = g.Logger(name);
   }
