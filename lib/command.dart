@@ -88,6 +88,7 @@ class WatchCommand extends RunnerCommand {
               equals(path, changePath)
             )) continue;
             if (sharedOptions.isExcludePath(changePath)) continue;
+            if (extension(changePath).isEmpty) continue;
 
             if (e.type == ChangeType.REMOVE) {
               await list?.remove(changePath);

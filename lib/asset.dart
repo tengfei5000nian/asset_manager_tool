@@ -15,8 +15,8 @@ class AssetItem {
     if (await file.exists()) {
       final Uint8List content = await file.readAsBytes();
       final Digest contentDigest = md5.convert(content);
-      final Digest basenameDigest = md5.convert(path.codeUnits);
-      final Digest digest = md5.convert('$contentDigest$basenameDigest'.codeUnits);
+      final Digest pathDigest = md5.convert(path.codeUnits);
+      final Digest digest = md5.convert('$contentDigest$pathDigest'.codeUnits);
       final List<String> names = split(path.replaceFirst(rootPrefix(path), '').replaceAll(RegExp('[\\.\\_\\-\\s]+'), '/'));
       String name = names.removeAt(0) + names.map((String name) => name
         .toLowerCase()
@@ -194,14 +194,20 @@ class AssetList {
       if (await FileSystemEntity.isDirectory(path)) {
         final Directory dir = Directory(path);
         await for (final FileSystemEntity entity in dir.list()) {
-          if (await FileSystemEntity.isFile(entity.path) && !options.isExcludePath(entity.path)) {
+          if (
+            await FileSystemEntity.isFile(entity.path) &&
+            extension(entity.path).isNotEmpty &&
+            !options.isExcludePath(entity.path)
+          ) {
             assetPaths.add(entity.path);
           }
         }
-      } else if (await FileSystemEntity.isFile(path)) {
-        if (!options.isExcludePath(path)) {
-          assetPaths.add(path);
-        }
+      } else if (
+        await FileSystemEntity.isFile(path) &&
+        extension(path).isNotEmpty &&
+        !options.isExcludePath(path)
+      ) {
+        assetPaths.add(path);
       }
     }
 

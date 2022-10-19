@@ -132,8 +132,6 @@ class SharedOptions {
 
     final SharedOptions argOptions = SharedOptions.formARG(argResults);
 
-    print(argOptions);
-
     final SharedOptions? toolOptions = formatToolOptions(
       getConfig(
         argOptions.configPath.isNotEmpty
