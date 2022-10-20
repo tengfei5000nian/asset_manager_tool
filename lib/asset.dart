@@ -350,7 +350,6 @@ class AssetList {
         await remove(item.path, nowWrite: false);
       })
     );
-    await writeListFile();
   }
 
   @override
