@@ -17,19 +17,19 @@ dev_dependencies:
 
 flutter:
   assets:
-    - assets/options/
-    - assets/img/
+    - lib/assets/options/
+    - lib/assets/img/
 
   fonts:
     - family: Iconfont
       fonts:
-        - asset: assets/fonts/iconfont-Italic.ttf
-        - asset: assets/fonts/iconfont-Regular.ttf
+        - asset: lib/assets/fonts/iconfont-Italic.ttf
+        - asset: lib/assets/fonts/iconfont-Regular.ttf
           style: italic
 
 asset_manager_tool:
-  dustbin-path: assets/.asset_dustbin/
-  list-path: assets/asset_list.dart
+  dustbin-path: .asset_dustbin/
+  list-path: lib/asset_list.dart
   name-replace:
-    assets:
+    libAssets:
 

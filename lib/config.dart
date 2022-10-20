@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:path/path.dart';
 import 'package:yaml/yaml.dart';
 
 import 'options.dart';
@@ -41,7 +42,13 @@ List<String>? formatAssetList(YamlMap? data) {
     }
   }
 
-  return list;
+  return list.map((String path) {
+    if (extension(path).isEmpty) {
+      return join(path, '*.*');
+    } else {
+      return path;
+    }
+  }).toList();
 }
 
 YamlMap? getConfig(String? yamlFile) {

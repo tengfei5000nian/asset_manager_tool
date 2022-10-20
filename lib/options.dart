@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:args/args.dart';
-import 'package:glob/glob.dart';
+import 'package:path/path.dart';
 import 'package:yaml/yaml.dart';
+import 'package:glob/glob.dart';
+import 'package:glob/list_local_fs.dart';
 
 import 'config.dart';
 
@@ -20,10 +24,15 @@ class Option {
   });
 }
 
+const Option libPathOption = Option(
+  name: 'lib-path',
+  help: '监听的lib路径',
+  defaultsTo: 'lib/**.dart',
+);
 const Option assetPathOption = Option(
   name: 'asset-path',
   help: '监听的asset资产路径',
-  defaultsTo: 'assets/',
+  defaultsTo: 'assets/*.*',
 );
 const Option dustbinPathOption = Option(
   name: 'dustbin-path',
@@ -40,11 +49,6 @@ const Option configPathOption = Option(
   help: 'config文件路径',
   defaultsTo: 'pubspec.yaml',
 );
-const Option excludePathOption = Option(
-  name: 'exclude-path',
-  help: '排除的asset资产文件',
-  defaultsTo: '**/asset_list.dart',
-);
 const Option nameReplaceOption = Option(
   name: 'name-replace',
   help: 'asset资产实例名替换',
@@ -52,29 +56,29 @@ const Option nameReplaceOption = Option(
 );
 
 class SharedOptions {
+  final List<String> libPaths;
   final List<String> assetPaths;
   final String dustbinPath;
   final String listPath;
   final String configPath;
-  final List<String> excludePaths;
   final Map<String, String?> nameReplaces;
 
   SharedOptions({
+    required this.libPaths,
     required this.assetPaths,
     required this.dustbinPath,
     required this.listPath,
     required this.configPath,
-    required this.excludePaths,
     required this.nameReplaces,
   });
 
   factory SharedOptions.defaults() {
     return SharedOptions(
+      libPaths: libPathOption.defaultsTo.split(','),
       assetPaths: assetPathOption.defaultsTo.split(','),
       dustbinPath: dustbinPathOption.defaultsTo,
       listPath: listPathOption.defaultsTo,
       configPath: configPathOption.defaultsTo,
-      excludePaths: excludePathOption.defaultsTo.split(','),
       nameReplaces: nameReplaceOption.defaultsTo.split(',').fold({}, (Map<String, String?> data, String item) {
         final List<String> value = item.split(':');
         data[value.first] = value.length >= 2 ? value[1] : null;
@@ -85,15 +89,15 @@ class SharedOptions {
 
   factory SharedOptions.formJSON(Map? json) {
     return SharedOptions(
+      libPaths: json?[libPathOption.name] is List
+        ? List<String>.from(json![libPathOption.name])
+        : [],
       assetPaths: json?[assetPathOption.name] is List
         ? List<String>.from(json![assetPathOption.name])
         : [],
       dustbinPath: (json?[dustbinPathOption.name] as String?) ?? '',
       listPath: (json?[listPathOption.name] as String?) ?? '',
       configPath: (json?[configPathOption.name] as String?) ?? '',
-      excludePaths: json?[excludePathOption.name] is List
-        ? List<String>.from(json![excludePathOption.name])
-        : [],
       nameReplaces: json?[nameReplaceOption.name] is Map
         ? Map<String, String?>.from(json![nameReplaceOption.name])
         : {},
@@ -102,6 +106,9 @@ class SharedOptions {
 
   factory SharedOptions.formARG(ArgResults? argResults) {
     return SharedOptions(
+      libPaths: argResults?[libPathOption.name] is List
+        ? List<String>.from(argResults![libPathOption.name])
+        : [],
       assetPaths: argResults?[assetPathOption.name] is List
         ? List<String>.from(argResults![assetPathOption.name])
         : [],
@@ -114,9 +121,6 @@ class SharedOptions {
       configPath: argResults?[configPathOption.name] is String
         ? argResults![configPathOption.name]
         : '',
-      excludePaths: argResults?[excludePathOption.name] is List
-        ? List<String>.from(argResults![excludePathOption.name])
-        : [],
       nameReplaces: argResults?[nameReplaceOption.name] is Map
         ? Map<String, String?>.from(argResults![nameReplaceOption.name])
         : {},
@@ -145,6 +149,13 @@ class SharedOptions {
     );
 
     return SharedOptions(
+      libPaths: argOptions.libPaths.isNotEmpty
+        ? argOptions.libPaths
+        : toolOptions?.libPaths.isNotEmpty ?? false
+          ? toolOptions!.libPaths
+          : yamlOptions?.libPaths.isNotEmpty ?? false
+            ? yamlOptions!.libPaths
+            : defaultOptions.libPaths,
       assetPaths: argOptions.assetPaths.isNotEmpty
         ? argOptions.assetPaths
         : toolOptions?.assetPaths.isNotEmpty ?? false
@@ -175,13 +186,6 @@ class SharedOptions {
           : yamlOptions?.configPath.isNotEmpty ?? false
             ? yamlOptions!.configPath
             : defaultOptions.configPath,
-      excludePaths: argOptions.excludePaths.isNotEmpty
-        ? argOptions.excludePaths
-        : toolOptions?.excludePaths.isNotEmpty ?? false
-          ? toolOptions!.excludePaths
-          : yamlOptions?.excludePaths.isNotEmpty ?? false
-            ? yamlOptions!.excludePaths
-            : defaultOptions.excludePaths,
       nameReplaces: argOptions.nameReplaces.isNotEmpty
         ? argOptions.nameReplaces
         : toolOptions?.nameReplaces.isNotEmpty ?? false
@@ -192,18 +196,52 @@ class SharedOptions {
     );
   }
 
-  bool isExcludePath(String path) {
-    return excludePaths.every((String p) => Glob(p).matches(path));
+  bool isListPath(String path) {
+    return equals(listPath, path);
+  }
+
+  bool isAssetPath(String path) {
+    return assetPaths.any((String p) => !isListPath(path) && Glob(p).matches(path));
+  }
+
+  bool isLibPath(String path) {
+    return libPaths.any((String p) => !isListPath(path) && Glob(p).matches(path));
+  }
+
+  Future<List<String>> get findLibPaths async {
+    final List<String> libPaths = [];
+
+    for (final String path in this.libPaths) {
+      final Glob glob = Glob(path);
+      await for (final FileSystemEntity entity in glob.list()) {
+        if (!isListPath(entity.path)) libPaths.add(relative(entity.path, from: current));
+      }
+    }
+
+    return libPaths;
+  }
+
+  Future<List<String>> get findAssetPaths async {
+    final List<String> assetPaths = [];
+
+    for (final String path in this.assetPaths) {
+      final Glob glob = Glob(path);
+      await for (final FileSystemEntity entity in glob.list()) {
+        if (!isListPath(entity.path)) assetPaths.add(relative(entity.path, from: current));
+      }
+    }
+
+    return assetPaths;
   }
 
   @override
   String toString() {
     final Map<String, String> data = {};
 
+    data['libPaths'] = libPaths.join(',');
     data['assetPaths'] = assetPaths.join(',');
     data['dustbinPath'] = dustbinPath;
     data['listPath'] = listPath;
-    data['excludePaths'] = excludePaths.join(',');
     data['nameReplaces'] = nameReplaces.keys.map((String key) {
       return '$key:${nameReplaces[key]}';
     }).join(',');

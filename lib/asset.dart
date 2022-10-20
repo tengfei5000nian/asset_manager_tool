@@ -5,12 +5,13 @@ import 'package:path/path.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image/image.dart';
 
+import 'lib.dart';
 import 'logger.dart';
 import 'options.dart';
 
 class AssetItem {
   static const String className = 'AssetItem';
-  static Future<AssetItem?> readFile(String path, SharedOptions options) async {
+  static Future<AssetItem?> readFile(String path, Lib lib, SharedOptions options) async {
     final File file = File(path);
     if (await file.exists()) {
       final Uint8List content = await file.readAsBytes();
@@ -39,6 +40,7 @@ class AssetItem {
         path: path,
         name: name,
         hash: digest.toString(),
+        lib: lib,
         options: options,
         content: content,
       );
@@ -50,6 +52,7 @@ class AssetItem {
   final String path;
   final String name;
   final String hash;
+  final Lib lib;
   final SharedOptions options;
 
   Uint8List? content;
@@ -58,6 +61,7 @@ class AssetItem {
     required this.path,
     required this.name,
     required this.hash,
+    required this.lib,
     required this.options,
     this.content,
   });
@@ -67,14 +71,24 @@ class AssetItem {
     '$hash${extension(path)}'
   );
 
+  bool get isUse => lib.test('${AssetList.className}.$name');
+
   Future<bool> get assetExists async => await File(path).exists();
 
   Future<bool> get dustbinExists async => await File(dustbinPath).exists();
+
+  Future<void> get checkOrCreateDustbin async {
+    final Directory dir = Directory(options.dustbinPath);
+    if (await dir.exists()) return;
+    await dir.create(recursive: true);
+  }
 
   Future<void> remove({
     bool useMemory = false,
     bool isFailTip = true,
   }) async {
+    await checkOrCreateDustbin;
+
     if (await assetExists) {
       if (useMemory) {
         if (content != null) await File(dustbinPath).writeAsBytes(content!);
@@ -109,17 +123,15 @@ class AssetItem {
 
   @override
   String toString() => '''
-const $className $name = $className(
-  '$path',
-  '$hash',
-);''';
+/* $hash ${isUse ? 'YES' : 'NO'} */
+static const $className $name = $className('$path');''';
 }
 
 class ImageAssetItem extends AssetItem {
   static const List<String> exts = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
   static const String className = 'ImageAssetItem';
-  static Future<AssetItem?> readFile(String path, SharedOptions options) async {
-    final AssetItem? asset = await AssetItem.readFile(path, options);
+  static Future<AssetItem?> readFile(String path, Lib lib, SharedOptions options) async {
+    final AssetItem? asset = await AssetItem.readFile(path, lib, options);
     if (asset != null) {
       final Image? img = decodeImage(asset.content!);
       return img == null
@@ -128,6 +140,7 @@ class ImageAssetItem extends AssetItem {
           path: asset.path,
           name: asset.name,
           hash: asset.hash,
+          lib: asset.lib,
           options: asset.options,
           content: asset.content,
           width: img.width,
@@ -145,6 +158,7 @@ class ImageAssetItem extends AssetItem {
     required super.path,
     required super.name,
     required super.hash,
+    required super.lib,
     required super.options,
     super.content,
     required this.width,
@@ -153,109 +167,89 @@ class ImageAssetItem extends AssetItem {
 
   @override
   String toString() => '''
-const $className $name = $className(
-  '${super.path}',
-  '${super.hash}',
-  $width,
-  $height,
-);''';
+/* ${super.hash} ${isUse ? 'YES' : 'NO'} */
+static const $className $name = $className('${super.path}', $width, $height);''';
 }
 
 class AssetList {
   static const String className = 'AssetList';
-  static Future<AssetList?> readListFile(SharedOptions options) async {
+  static Future<AssetList?> readListFile(Lib lib, SharedOptions options) async {
     final File file = File(options.listPath);
     if (await file.exists()) {
       final String content = await file.readAsString();
-      return AssetList(
+      final AssetList list = AssetList(
+        lib: lib,
         options: options,
-        content: content
+        content: content,
       );
+      return list;
     } else {
       return null;
     }
   }
-  static Future<AssetList?> readAssetDir(SharedOptions options) async {
+  static Future<AssetList?> readAssetDir(Lib lib, SharedOptions options) async {
     if (options.assetPaths.isEmpty) return null;
 
-    final AssetList list = AssetList(options: options);
-    final List<String> paths = await findAssetPaths(options);
+    final AssetList list = AssetList(
+      lib: lib,
+      options: options,
+    );
 
+    final List<String> paths = await options.findAssetPaths;
     for (final String path in paths) {
       await list.add(path, nowWrite: false);
     }
 
     return list;
   }
-  static Future<List<String>> findAssetPaths(SharedOptions options) async {
-    final List<String> assetPaths = [];
 
-    for (final String path in options.assetPaths) {
-      if (await FileSystemEntity.isDirectory(path)) {
-        final Directory dir = Directory(path);
-        await for (final FileSystemEntity entity in dir.list()) {
-          if (
-            await FileSystemEntity.isFile(entity.path) &&
-            extension(entity.path).isNotEmpty &&
-            !options.isExcludePath(entity.path)
-          ) {
-            assetPaths.add(entity.path);
-          }
-        }
-      } else if (
-        await FileSystemEntity.isFile(path) &&
-        extension(path).isNotEmpty &&
-        !options.isExcludePath(path)
-      ) {
-        assetPaths.add(path);
-      }
-    }
-
-    return assetPaths;
-  }
-
+  final Lib lib;
   final SharedOptions options;
   final Map<String, AssetItem> list = {};
 
   AssetList({
+    required this.lib,
     required this.options,
     String? content,
   }) {
     if (content == null) return;
 
     final String reArg = '[\\n\\s\'"]*([^\\s\\,\'"]+)[\\s\'"]*,?';
-    final String reAssetItem = '[\\n\\s]+static\\s+const\\s+${AssetItem.className}\\s+([\\w\\d]+)\\s+\\=\\s+${AssetItem.className}\\($reArg$reArg[\\n\\s]+\\);';
-    final String reImageAssetItem = '[\\n\\s]+static\\s+const\\s+${ImageAssetItem.className}\\s+([\\w\\d]+)\\s+\\=\\s+${ImageAssetItem.className}\\($reArg$reArg$reArg$reArg[\\n\\s]+\\);';
+    final String reMark = '[\\n\\s]*\\/\\*\\s*([^\\s]+)\\s*(YES|NO)\\s*\\*\\/';
+    final String reAssetItem = '$reMark[\\n\\s]+static\\s+const\\s+${AssetItem.className}\\s+([\\w\\d]+)\\s+\\=\\s+${AssetItem.className}\\($reArg[\\n\\s]*\\);';
+    final String reImageAssetItem = '$reMark[\\n\\s]+static\\s+const\\s+${ImageAssetItem.className}\\s+([\\w\\d]+)\\s+\\=\\s+${ImageAssetItem.className}\\($reArg$reArg$reArg[\\n\\s]*\\);';
     final String reItem = '($reAssetItem|$reImageAssetItem)';
-    final String reClass = 'abstract\\s+class\\s+$className\\s+\\{$reItem*[\\n\\s]+\\}';
+    final String reClass = 'abstract\\s+class\\s+$className\\s+\\{$reItem*[\\n\\s]*\\}';
 
     if (!RegExp(reClass).hasMatch(content)) return;
 
     content
       .replaceAllMapped(RegExp(reImageAssetItem), (Match match) {
-        final String name = match.group(1)!;
-        final String path = match.group(2)!;
-        final String hash = match.group(3)!;
-        final int width = int.parse(match.group(4)!);
-        final int height = int.parse(match.group(5)!);
+        final String hash = match.group(1)!;
+        final String name = match.group(3)!;
+        final String path = match.group(4)!;
+        final int width = int.parse(match.group(5)!);
+        final int height = int.parse(match.group(6)!);
         list[path] = ImageAssetItem(
           path: path,
           name: name,
           hash: hash,
           width: width,
           height: height,
+          lib: lib,
           options: options,
         );
         return '';
       })
       .replaceAllMapped(RegExp(reAssetItem), (Match match) {
-        final String name = match.group(1)!;
-        final String path = match.group(2)!;
-        final String hash = match.group(3)!;
+        final String hash = match.group(1)!;
+        final String name = match.group(3)!;
+        final String path = match.group(4)!;
         list[path] = AssetItem(
           path: path,
           name: name,
           hash: hash,
+          lib: lib,
           options: options,
         );
         return '';
@@ -274,8 +268,8 @@ class AssetList {
     bool isFailTip = true,
   }) async {
     final AssetItem? asset = ImageAssetItem.exts.contains(extension(path).substring(1))
-      ? await ImageAssetItem.readFile(path, options)
-      : await AssetItem.readFile(path, options);
+      ? await ImageAssetItem.readFile(path, lib, options)
+      : await AssetItem.readFile(path, lib, options);
     if (asset == null) {
       if (isFailTip) logger.warning(className, 'add失败，asset中不存在$path');
     } else {
@@ -330,7 +324,7 @@ class AssetList {
   }
 
   Future<void> checkAsset() async {
-    final AssetList? assetList = await AssetList.readAssetDir(options);
+    final AssetList? assetList = await AssetList.readAssetDir(lib, options);
     if (assetList == null) {
       logger.warning(className, 'checkAsset失败，assetPaths不存在${options.assetPaths}');
     } else {
@@ -353,16 +347,14 @@ class AssetList {
   @override
   String toString() => '''
 abstract class $className {
-${assets.map((AssetItem item) => '  static $item'.replaceAll('\n', '\n  ')).join('\n\n')}
+${assets.map((AssetItem item) => '  $item'.replaceAll('\n', '\n  ')).join('\n')}
 }
 
 class ${AssetItem.className} {
   final String path;
-  final String hash;
 
   const ${AssetItem.className}(
     this.path,
-    this.hash,
   );
 }
 
@@ -372,7 +364,6 @@ class ${ImageAssetItem.className} extends ${AssetItem.className} {
 
   const ${ImageAssetItem.className}(
     super.path,
-    super.hash,
     this.width,
     this.height,
   );

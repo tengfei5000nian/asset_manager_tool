@@ -5,11 +5,18 @@ import 'package:watcher/watcher.dart';
 import 'package:path/path.dart';
 
 import 'asset.dart';
+import 'lib.dart';
 import 'options.dart';
 
 abstract class RunnerCommand extends Command<int> {
   RunnerCommand() : super() {
     argParser
+      ..addMultiOption(
+        libPathOption.name,
+        abbr: libPathOption.abbr,
+        help: libPathOption.help,
+        valueHelp: libPathOption.valueHelp ?? libPathOption.defaultsTo,
+      )
       ..addMultiOption(
         assetPathOption.name,
         abbr: assetPathOption.abbr,
@@ -32,12 +39,6 @@ abstract class RunnerCommand extends Command<int> {
         configPathOption.name,
         help: configPathOption.help,
         valueHelp: configPathOption.valueHelp ?? configPathOption.defaultsTo,
-      )
-      ..addMultiOption(
-        excludePathOption.name,
-        abbr: excludePathOption.abbr,
-        help: excludePathOption.help,
-        valueHelp: excludePathOption.valueHelp ?? excludePathOption.defaultsTo,
       )
       ..addMultiOption(
         nameReplaceOption.name,
@@ -63,7 +64,10 @@ class WatchCommand extends RunnerCommand {
   Future<int> run() async {
     final Completer<int> completer = Completer();
 
-    AssetList? list = await AssetList.readAssetDir(sharedOptions);
+    final Lib lib = Lib(sharedOptions);
+    await lib.init();
+
+    AssetList? list = await AssetList.readAssetDir(lib, sharedOptions);
     await list?.writeListFile();
 
     Watcher(current).events.listen((WatchEvent e) async {
@@ -71,8 +75,8 @@ class WatchCommand extends RunnerCommand {
         if (!isWithin(current, e.path)) return;
         final String changePath = relative(e.path, from: current);
 
-        if (equals(sharedOptions.listPath, changePath)) {
-          final AssetList? newList = await AssetList.readListFile(sharedOptions);
+        if (sharedOptions.isListPath(changePath)) {
+          final AssetList? newList = await AssetList.readListFile(lib, sharedOptions);
           if (newList.toString() == list.toString()) return;
 
           await newList?.checkAsset();
@@ -81,20 +85,18 @@ class WatchCommand extends RunnerCommand {
 
           await newList?.writeListFile();
           list = newList;
-        } else {
-          for (final String path in sharedOptions.assetPaths) {
-            if (!(
-              (isWithin(path, changePath) && split(changePath).length - split(path).length == 1) ||
-              equals(path, changePath)
-            )) continue;
-            if (sharedOptions.isExcludePath(changePath)) continue;
-            if (extension(changePath).isEmpty) continue;
-
-            if (e.type == ChangeType.REMOVE) {
-              await list?.remove(changePath);
-            } else if (e.type == ChangeType.ADD || e.type == ChangeType.MODIFY) {
-              await list?.add(changePath);
-            }
+        } else if (sharedOptions.isAssetPath(changePath)) {
+          if (e.type == ChangeType.REMOVE) {
+            await list?.remove(changePath);
+          } else if (e.type == ChangeType.ADD || e.type == ChangeType.MODIFY) {
+            await list?.add(changePath);
+          }
+        } else if (sharedOptions.isLibPath(changePath)) {
+          if (e.type == ChangeType.REMOVE) {
+            await lib.remove(changePath);
+          } else if (e.type == ChangeType.ADD || e.type == ChangeType.MODIFY) {
+            await lib.add(changePath);
+            await list?.writeListFile();
           }
         }
       } catch (err) {
@@ -119,7 +121,10 @@ class BuildAssetCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
-    final AssetList? list = await AssetList.readAssetDir(sharedOptions);
+    final Lib lib = Lib(sharedOptions);
+    await lib.init();
+
+    final AssetList? list = await AssetList.readAssetDir(lib, sharedOptions);
     await list?.writeListFile();
     return 0;
   }
@@ -136,7 +141,10 @@ class BuildListCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
-    final AssetList? list = await AssetList.readListFile(sharedOptions);
+    final Lib lib = Lib(sharedOptions);
+    await lib.init();
+
+    final AssetList? list = await AssetList.readListFile(lib, sharedOptions);
     await list?.checkAsset();
     await list?.writeListFile();
     return 0;
