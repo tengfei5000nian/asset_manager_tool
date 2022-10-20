@@ -39,7 +39,7 @@ class AssetItem {
       return AssetItem(
         path: path,
         name: name,
-        hash: digest.toString(),
+        hash: digest.toString().substring(0, 8),
         lib: lib,
         options: options,
         content: content,
@@ -123,8 +123,7 @@ class AssetItem {
 
   @override
   String toString() => '''
-/* $hash ${isUse ? 'YES' : 'NO'} */
-static const $className $name = $className('$path');''';
+/* $hash ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('$path');''';
 }
 
 class ImageAssetItem extends AssetItem {
@@ -167,8 +166,7 @@ class ImageAssetItem extends AssetItem {
 
   @override
   String toString() => '''
-/* ${super.hash} ${isUse ? 'YES' : 'NO'} */
-static const $className $name = $className('${super.path}', $width, $height);''';
+/* ${super.hash} ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('${super.path}', $width, $height);''';
 }
 
 class AssetList {
@@ -215,7 +213,7 @@ class AssetList {
     if (content == null) return;
 
     final String reArg = '[\\n\\s\'"]*([^\\s\\,\'"]+)[\\s\'"]*,?';
-    final String reMark = '[\\n\\s]*\\/\\*\\s*([^\\s]+)\\s*(YES|NO)\\s*\\*\\/';
+    final String reMark = '[\\n\\s]*\\/\\*\\s*([^\\s]+)\\s*(Y|N)\\s*\\*\\/';
     final String reAssetItem = '$reMark[\\n\\s]+static\\s+const\\s+${AssetItem.className}\\s+([\\w\\d]+)\\s+\\=\\s+${AssetItem.className}\\($reArg[\\n\\s]*\\);';
     final String reImageAssetItem = '$reMark[\\n\\s]+static\\s+const\\s+${ImageAssetItem.className}\\s+([\\w\\d]+)\\s+\\=\\s+${ImageAssetItem.className}\\($reArg$reArg$reArg[\\n\\s]*\\);';
     final String reItem = '($reAssetItem|$reImageAssetItem)';
