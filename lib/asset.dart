@@ -343,12 +343,14 @@ class AssetList {
   }
 
   Future<void> clean() async {
+    final List<AssetItem> items = list.values.toList();
     await Future.wait(
-      list.values.map((AssetItem item) async {
+      items.map((AssetItem item) async {
         if (item.isUse) return;
-        await remove(item.path);
+        await remove(item.path, nowWrite: false);
       })
     );
+    await writeListFile();
   }
 
   @override
