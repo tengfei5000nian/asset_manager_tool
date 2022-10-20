@@ -11,7 +11,8 @@ void main(List<String> arguments) async {
     )
       ..addCommand(WatchCommand())
       ..addCommand(BuildAssetCommand())
-      ..addCommand(BuildListCommand());
+      ..addCommand(BuildListCommand())
+      ..addCommand(BuildCleanCommand());
 
     final ArgResults argResults = commandRunner.parse(arguments);
     await commandRunner.runCommand(argResults);

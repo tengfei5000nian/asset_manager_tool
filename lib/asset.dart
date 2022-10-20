@@ -342,6 +342,15 @@ class AssetList {
     }
   }
 
+  Future<void> clean() async {
+    await Future.wait(
+      list.values.map((AssetItem item) async {
+        if (item.isUse) return;
+        await remove(item.path);
+      })
+    );
+  }
+
   @override
   String toString() => '''
 abstract class $className {

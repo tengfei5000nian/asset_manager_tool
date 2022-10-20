@@ -52,8 +52,6 @@ abstract class RunnerCommand extends Command<int> {
 }
 
 class WatchCommand extends RunnerCommand {
-  WatchCommand() : super();
-
   @override
   String get name => 'watch';
 
@@ -111,8 +109,6 @@ class WatchCommand extends RunnerCommand {
 }
 
 class BuildAssetCommand extends RunnerCommand {
-  BuildAssetCommand() : super();
-
   @override
   String get name => 'build:asset';
 
@@ -131,8 +127,6 @@ class BuildAssetCommand extends RunnerCommand {
 }
 
 class BuildListCommand extends RunnerCommand {
-  BuildListCommand() : super();
-
   @override
   String get name => 'build:list';
 
@@ -146,6 +140,26 @@ class BuildListCommand extends RunnerCommand {
 
     final AssetList? list = await AssetList.readListFile(lib, sharedOptions);
     await list?.checkAsset();
+    await list?.writeListFile();
+    return 0;
+  }
+}
+
+class BuildCleanCommand extends RunnerCommand {
+  @override
+  String get name => 'clean';
+
+  @override
+  String get description => '以清单list数据为起点清除未使用的asset资源';
+
+  @override
+  Future<int> run() async {
+    final Lib lib = Lib(sharedOptions);
+    await lib.init();
+
+    final AssetList? list = await AssetList.readListFile(lib, sharedOptions);
+    await list?.checkAsset();
+    await list?.clean();
     await list?.writeListFile();
     return 0;
   }
