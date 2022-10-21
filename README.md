@@ -65,6 +65,8 @@ asset_manager_tool:
 
 ##### 在pubspec.yaml中设置参数示例，优先级第三位
 
+> 注意: 当是flutter项目并且没有配置asset-path时，会取flutter:assets和flutter:fonts的资产路径。
+
 ```yaml
 flutter:
   assets:
