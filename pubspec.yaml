@@ -1,5 +1,5 @@
 name: asset_manager_tool
-description: A sample command-line application.
+description: 这个包的目的是帮助我们管理资产文件，并给出提示资产文件是否在项目中使用到。
 version: 1.0.0
 homepage: https://github.com/tengfei5000nian/asset_manager_tool
 
