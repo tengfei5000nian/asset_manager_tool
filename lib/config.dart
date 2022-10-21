@@ -5,6 +5,7 @@ import 'package:yaml/yaml.dart';
 
 import 'options.dart';
 
+// 将项目中yaml文件里的asset_manager_tool配置解析成SharedOptions参数集
 SharedOptions? formatToolOptions(YamlMap? data) {
   if (data == null) return null;
 
@@ -14,6 +15,7 @@ SharedOptions? formatToolOptions(YamlMap? data) {
   return SharedOptions.formJSON(config.value);
 }
 
+// 读取flutter项目yaml文件里配置的所有asset文件路径
 List<String>? formatAssetList(YamlMap? data) {
   if (data == null) return null;
 
@@ -51,6 +53,7 @@ List<String>? formatAssetList(YamlMap? data) {
   }).toList();
 }
 
+// 读取yaml文件数据
 YamlMap? getConfig(String? yamlFile) {
   if (yamlFile == null) return null;
 

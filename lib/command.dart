@@ -77,7 +77,7 @@ class WatchCommand extends RunnerCommand {
           final AssetList? newList = await AssetList.readListFile(lib, sharedOptions);
           if (newList.toString() == list.toString()) return;
 
-          await newList?.checkAsset();
+          await newList?.checkAsset(nowWrite: false);
 
           if (newList.toString() == list.toString()) return;
 
@@ -140,7 +140,6 @@ class BuildListCommand extends RunnerCommand {
 
     final AssetList? list = await AssetList.readListFile(lib, sharedOptions);
     await list?.checkAsset();
-    await list?.writeListFile();
     return 0;
   }
 }
@@ -158,9 +157,8 @@ class BuildCleanCommand extends RunnerCommand {
     await lib.init();
 
     final AssetList? list = await AssetList.readListFile(lib, sharedOptions);
-    await list?.checkAsset();
+    await list?.checkAsset(nowWrite: false);
     await list?.clean();
-    await list?.writeListFile();
     return 0;
   }
 }

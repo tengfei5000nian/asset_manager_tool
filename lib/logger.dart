@@ -1,6 +1,7 @@
 import 'package:io/ansi.dart';
 import 'package:logging/logging.dart' as g;
 
+// 日志输出类
 class Logger {
   late g.Logger lg;
 
@@ -18,8 +19,10 @@ class Logger {
     lg = g.Logger(name);
   }
 
+  // 输出警示message
   void warning(String name, String msg) => lg.warning('$name($msg)');
 
+  // 输出错误message
   void severe(String name, String msg) => lg.severe('$name($msg)');
 }
 

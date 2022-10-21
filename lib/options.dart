@@ -32,17 +32,17 @@ const Option libPathOption = Option(
 const Option assetPathOption = Option(
   name: 'asset-path',
   help: '监听的asset资产路径',
-  defaultsTo: 'assets/*.*',
+  defaultsTo: 'lib/assets/*.*',
 );
 const Option dustbinPathOption = Option(
   name: 'dustbin-path',
-  help: '删除的asset资产垃圾箱文件夹dustbin路径',
+  help: '删除的asset资产保存的垃圾箱文件夹dustbin路径',
   defaultsTo: '.asset_dustbin/',
 );
 const Option listPathOption = Option(
   name: 'list-path',
   help: '通过asset资产创建的清单list',
-  defaultsTo: 'asset_list.dart',
+  defaultsTo: 'lib/asset_list.dart',
 );
 const Option configPathOption = Option(
   name: 'config-path',
@@ -52,9 +52,10 @@ const Option configPathOption = Option(
 const Option nameReplaceOption = Option(
   name: 'name-replace',
   help: 'asset资产实例名替换',
-  defaultsTo: 'assets:',
+  defaultsTo: 'libAssets:',
 );
 
+// 执行命令需要携带的参数集
 class SharedOptions {
   final List<String> libPaths;
   final List<String> assetPaths;
@@ -72,6 +73,7 @@ class SharedOptions {
     required this.nameReplaces,
   });
 
+  // 创建一个default参数的SharedOptions
   factory SharedOptions.defaults() {
     return SharedOptions(
       libPaths: libPathOption.defaultsTo.split(','),
@@ -87,6 +89,7 @@ class SharedOptions {
     );
   }
 
+  // 创建一个参数从yaml文件获取的SharedOptions
   factory SharedOptions.formJSON(Map? json) {
     return SharedOptions(
       libPaths: json?[libPathOption.name] is List
@@ -104,6 +107,7 @@ class SharedOptions {
     );
   }
 
+  // 创建一个参数从命令行获取的SharedOptions
   factory SharedOptions.formARG(ArgResults? argResults) {
     return SharedOptions(
       libPaths: argResults?[libPathOption.name] is List
@@ -127,6 +131,7 @@ class SharedOptions {
     );
   }
 
+  // 创建一个参数优先级按命令行、asset_manager_tool.yaml、pubspec.yaml、flutter配置、default获取的SharedOptions
   factory SharedOptions.create(ArgResults? argResults) {
     final SharedOptions defaultOptions = SharedOptions.defaults();
 
@@ -196,18 +201,22 @@ class SharedOptions {
     );
   }
 
+  // 是否是清单list文件地址
   bool isListPath(String path) {
     return equals(listPath, path);
   }
 
+  // 地址是否符合asset资产路径
   bool isAssetPath(String path) {
     return assetPaths.any((String p) => !isListPath(path) && Glob(p).matches(path));
   }
 
+  // 地址是否符合lib匹配规则
   bool isLibPath(String path) {
     return libPaths.any((String p) => !isListPath(path) && Glob(p).matches(path));
   }
 
+  // 获取符合lib匹配规则的所有文件地址
   Future<List<String>> get findLibPaths async {
     final List<String> libPaths = [];
 
@@ -221,6 +230,7 @@ class SharedOptions {
     return libPaths;
   }
 
+  // 获取符合asset匹配规则的所有文件地址
   Future<List<String>> get findAssetPaths async {
     final List<String> assetPaths = [];
 

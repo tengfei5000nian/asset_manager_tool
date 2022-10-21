@@ -9,8 +9,12 @@ import 'lib.dart';
 import 'logger.dart';
 import 'options.dart';
 
+// 表示一个asset资产的基本数据类
 class AssetItem {
+  // 生成list资产清单时资产的类名
   static const String className = 'AssetItem';
+
+  // 通过文件地址path创建一个AssetItem资产项
   static Future<AssetItem?> readFile(String path, Lib lib, SharedOptions options) async {
     final File file = File(path);
     if (await file.exists()) {
@@ -49,12 +53,18 @@ class AssetItem {
     }
   }
 
+  // asset资产所在原始路径
   final String path;
+  // 生成list资产清单时的实例名
   final String name;
+  // 当前asset资产的文件数据加原始路径的hash
   final String hash;
+  // 一个符合lib匹配规则的文件数据缓存类实例
   final Lib lib;
+  // 当前执行的命令所携带的参数集
   final SharedOptions options;
 
+  // 当前asset资产的文件数据
   Uint8List? content;
 
   AssetItem({
@@ -66,24 +76,30 @@ class AssetItem {
     this.content,
   });
 
+  // 当asset资产被删除移到回收文件夹时的地址
   String get dustbinPath => join(
     options.dustbinPath,
     '$hash${extension(path)}'
   );
 
+  // 判断符合lib匹配规则的文件数据中是否使用了该资产
   bool get isUse => lib.test('${AssetList.className}.$name');
 
+  // 原始路径是否存在该asset资产文件
   Future<bool> get assetExists async => await File(path).exists();
 
+  // 回收文件夹中是否存在该asset资产文件备份
   Future<bool> get dustbinExists async => await File(dustbinPath).exists();
 
+  // 检查回收文件夹是否存在，没有就新建
   Future<void> get checkOrCreateDustbin async {
     final Directory dir = Directory(options.dustbinPath);
     if (await dir.exists()) return;
     await dir.create(recursive: true);
   }
 
-  Future<void> remove({
+  // 删除当前asset资产，将其移到回收文件夹
+  Future<bool> remove({
     bool useMemory = false,
     bool isFailTip = true,
   }) async {
@@ -91,34 +107,51 @@ class AssetItem {
 
     if (await assetExists) {
       if (useMemory) {
-        if (content != null) await File(dustbinPath).writeAsBytes(content!);
         await File(path).delete();
+        if (content != null) {
+          await File(dustbinPath).writeAsBytes(content!);
+          return true;
+        } else {
+          return false;
+        }
       } else {
         await File(path).rename(dustbinPath);
+        return true;
       }
     } else if (content != null) {
       await File(dustbinPath).writeAsBytes(content!);
+      return true;
     } else if (isFailTip) {
       logger.warning(className, 'remove失败，asset和memory中不存在$path');
     }
+    return false;
   }
 
-  Future<void> resume({
+  // 从回收文件夹恢复当前asset资产，并将其从回收文件夹移除
+  Future<bool> resume({
     bool useMemory = false,
     bool isFailTip = true,
   }) async {
     if (await dustbinExists) {
       if (useMemory) {
-        if (content != null) await File(path).writeAsBytes(content!);
         await File(dustbinPath).delete();
+        if (content != null) {
+          await File(path).writeAsBytes(content!);
+          return true;
+        } else {
+          return false;
+        }
       } else {
         await File(dustbinPath).rename(path);
+        return true;
       }
     } else if (content != null) {
       await File(path).writeAsBytes(content!);
+      return true;
     } else if (isFailTip) {
       logger.warning(className, 'resume失败，dustbin和memory中不存在$path');
     }
+    return false;
   }
 
   @override
@@ -126,9 +159,15 @@ class AssetItem {
 /* $hash ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('$path');''';
 }
 
+// 表示一个图片asset资产的基本数据类
 class ImageAssetItem extends AssetItem {
+  // 扩展名符合exts的文件视为图片资产
   static const List<String> exts = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
+
+  // 生成list资产清单时资产的类名
   static const String className = 'ImageAssetItem';
+
+  // 通过图片地址path创建一个ImageAssetItem资产项
   static Future<AssetItem?> readFile(String path, Lib lib, SharedOptions options) async {
     final AssetItem? asset = await AssetItem.readFile(path, lib, options);
     if (asset != null) {
@@ -150,7 +189,9 @@ class ImageAssetItem extends AssetItem {
     }
   }
 
+  // 图片的宽
   final int width;
+  // 图片的高
   final int height;
 
   ImageAssetItem({
@@ -169,8 +210,12 @@ class ImageAssetItem extends AssetItem {
 /* ${super.hash} ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('${super.path}', $width, $height);''';
 }
 
+// 表示asset资产清单的类
 class AssetList {
+  // 生成list资产清单时资产清单的类名
   static const String className = 'AssetList';
+
+  // 通过解析list清单文件创建一个AssetList实例
   static Future<AssetList?> readListFile(Lib lib, SharedOptions options) async {
     final File file = File(options.listPath);
     if (await file.exists()) {
@@ -185,6 +230,8 @@ class AssetList {
       return null;
     }
   }
+
+  // 通过监听的asset资产路径创建一个AssetList实例
   static Future<AssetList?> readAssetDir(Lib lib, SharedOptions options) async {
     if (options.assetPaths.isEmpty) return null;
 
@@ -201,8 +248,11 @@ class AssetList {
     return list;
   }
 
+  // 一个符合lib匹配规则的文件数据缓存类实例
   final Lib lib;
+  // 当前执行的命令所携带的参数集
   final SharedOptions options;
+  // 以path:AssetItem的方式缓存asset资产
   final Map<String, AssetItem> list = {};
 
   AssetList({
@@ -212,11 +262,17 @@ class AssetList {
   }) {
     if (content == null) return;
 
+    // 解析AssetItem参数
     final String reArg = '[\\n\\s\'"]*([^\\s\\,\'"]+)[\\s\'"]*,?';
+    // 解析AssetItem备注
     final String reMark = '[\\n\\s]*\\/\\*\\s*([^\\s]+)\\s*(Y|N)\\s*\\*\\/';
+    // 解析AssetItem数据
     final String reAssetItem = '$reMark[\\n\\s]+static\\s+const\\s+${AssetItem.className}\\s+([\\w\\d]+)\\s+\\=\\s+${AssetItem.className}\\($reArg[\\n\\s]*\\);';
+    // 解析ImageAssetItem数据
     final String reImageAssetItem = '$reMark[\\n\\s]+static\\s+const\\s+${ImageAssetItem.className}\\s+([\\w\\d]+)\\s+\\=\\s+${ImageAssetItem.className}\\($reArg$reArg$reArg[\\n\\s]*\\);';
+    // 解析AssetItem或ImageAssetItem数据
     final String reItem = '($reAssetItem|$reImageAssetItem)';
+    // 解析AssetList数据
     final String reClass = 'abstract\\s+class\\s+$className\\s+\\{$reItem*[\\n\\s]*\\}';
 
     if (!RegExp(reClass).hasMatch(content)) return;
@@ -254,12 +310,14 @@ class AssetList {
       });
   }
 
+  // 从list中获取AssetItem列表并根据assetItem.name排序
   List<AssetItem> get assets {
     final List<AssetItem> data = list.values.toList();
     data.sort((a, b) => a.name.compareTo(b.name));
     return data;
   }
 
+  // 添加资产
   Future<void> add(
     String path, {
     bool nowWrite = true,
@@ -277,6 +335,7 @@ class AssetList {
     }
   }
 
+  // 删除资产
   Future<void> remove(
     String path, {
     bool useMemory = false,
@@ -290,19 +349,7 @@ class AssetList {
     if (nowWrite) await writeListFile();
   }
 
-  Future<void> resume(
-    AssetItem asset, {
-    bool useMemory = false,
-    bool nowWrite = true,
-    bool isFailTip = true,
-  }) async {
-    await asset.resume(
-      useMemory: useMemory,
-      isFailTip: isFailTip,
-    );
-    if (nowWrite) await writeListFile();
-  }
-
+  // 从当前list清单中获取assetItem
   AssetItem? get(AssetItem asset) {
     final AssetItem? item = list[asset.path];
     if (item?.hash == asset.hash) {
@@ -312,6 +359,7 @@ class AssetList {
     }
   }
 
+  // 写入list清单文件
   Future<void> writeListFile() async {
     final File file = File(options.listPath);
     final String content = toString();
@@ -321,7 +369,10 @@ class AssetList {
     await file.writeAsString(content);
   }
 
-  Future<void> checkAsset() async {
+  // 检查资产清单中的资产，判断是否实际存在或有无用资产，同步数据
+  Future<void> checkAsset({
+    bool nowWrite = true,
+  }) async {
     final AssetList? assetList = await AssetList.readAssetDir(lib, options);
     if (assetList == null) {
       logger.warning(className, 'checkAsset失败，assetPaths不存在${options.assetPaths}');
@@ -340,9 +391,13 @@ class AssetList {
         await item.remove();
       }
     }
+    if (nowWrite) await writeListFile();
   }
 
-  Future<void> clean() async {
+  // 清除未使用的asset资源
+  Future<void> clean({
+    bool nowWrite = true,
+  }) async {
     final List<AssetItem> items = list.values.toList();
     await Future.wait(
       items.map((AssetItem item) async {
@@ -350,6 +405,7 @@ class AssetList {
         await remove(item.path, nowWrite: false);
       })
     );
+    if (nowWrite) await writeListFile();
   }
 
   @override
