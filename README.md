@@ -107,5 +107,13 @@ void main() {
 - 修改`asset_list.dart`中的资产: 当删除、恢复资产信息实例时，资产文件会被移到、移出垃圾箱文件夹`.asset_dustbin/`。
 - 是否使用: `asset_list.dart`中的每条资产信息实例前都有一段注释，里面备注了hash和是否使用，`Y`有使用，`N`没使用。
 
+```dart
+abstract class AssetList {
+  /* 9b024533 Y */ static const AssetItem fontsIconfontRegularTtf = AssetItem('lib/assets/fonts/iconfont.ttf');
+  /* 24d8912f N */ static const ImageAssetItem imgCoverJpg = ImageAssetItem('lib/assets/img/cover.jpg', 1200, 799);
+  /* 1757e9c5 N */ static const AssetItem optionsDataJson = AssetItem('lib/assets/options/data.json');
+}
+```
+
 [dev_dependencies]: https://dart.dev/tools/pub/dependencies#dev-dependencies
 [pubspec]: https://dart.dev/tools/pub/pubspec
