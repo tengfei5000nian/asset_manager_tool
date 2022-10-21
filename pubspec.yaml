@@ -6,6 +6,11 @@ homepage: https://github.com/tengfei5000nian/asset_manager_tool
 environment:
   sdk: '>=2.17.6 <3.0.0'
 
+platforms:
+  linux:
+  windows:
+  macos:
+
 dependencies:
   args: ^2.3.1
   watcher: ^1.0.1
