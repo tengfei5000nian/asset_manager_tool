@@ -4,9 +4,9 @@
 * [使用](#使用)
   * [内置命令](#内置命令)
   * [命令参数](#命令参数)
-    * [在终端中设置参数示例，优先级第一位](#在终端中设置参数)
-    * [在asset_manager_tool.yaml中设置参数示例，优先级第二位](#在asset_manager_tool.yaml中设置参数)
-    * [在pubspec.yaml中设置参数示例，优先级第三位](#在pubspec.yaml中设置参数)
+    * [在终端中设置参数](#在终端中设置参数示例，优先级第一位)
+    * [在asset_manager_tool.yaml中设置参数](#在asset_manager_tool.yaml中设置参数示例，优先级第二位)
+    * [在pubspec.yaml中设置参数](#在pubspec.yaml中设置参数示例，优先级第三位)
   * [项目中使用](#项目中使用)
   * [资产管理和使用提示](#资产管理和使用提示)
 
