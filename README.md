@@ -4,9 +4,9 @@
 * [使用](#使用)
   * [内置命令](#内置命令)
   * [命令参数](#命令参数)
-    * [在终端中设置参数](#在终端中设置参数示例，优先级第一位)
-    * [在asset_manager_tool.yaml中设置参数](#在asset_manager_tool.yaml中设置参数示例，优先级第二位)
-    * [在pubspec.yaml中设置参数](#在pubspec.yaml中设置参数示例，优先级第三位)
+    * [在终端中设置参数](#在终端中设置参数示例优先级第一位)
+    * [在asset_manager_tool.yaml中设置参数](#在asset_manager_toolyaml中设置参数示例优先级第二位)
+    * [在pubspec.yaml中设置参数](#在pubspecyaml中设置参数示例优先级第三位)
   * [项目中使用](#项目中使用)
   * [资产管理和使用提示](#资产管理和使用提示)
 
@@ -104,3 +104,6 @@ void main() {
 - 修改资产文件: 当添加、删除、修改资产文件时`asset_list.dart`中的资产清单也会跟随修改。
 - 修改`asset_list.dart`中的资产: 当删除、恢复资产信息实例时，资产文件会被移到、移出垃圾箱文件夹`.asset_dustbin/`。
 - 是否使用: `asset_list.dart`中的每条资产信息实例前都有一段注释，里面备注了hash和是否使用，`Y`有使用，`N`没使用。
+
+[dev_dependencies]: https://dart.dev/tools/pub/dependencies#dev-dependencies
+[pubspec]: https://dart.dev/tools/pub/pubspec
