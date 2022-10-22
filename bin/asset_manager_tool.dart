@@ -16,7 +16,7 @@ void main(List<String> arguments) async {
 
     final ArgResults argResults = commandRunner.parse(arguments);
     await commandRunner.runCommand(argResults);
-  } catch (err) {
-    logger.severe('main', err.toString());
+  } catch (error, stackTrace) {
+    logger.severe('main', error, stackTrace);
   }
 }

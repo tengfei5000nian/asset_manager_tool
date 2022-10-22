@@ -122,7 +122,7 @@ class AssetItem {
       await File(dustbinPath).writeAsBytes(content!);
       return true;
     } else if (isFailTip) {
-      logger.warning(className, 'remove失败，asset和memory中不存在$path');
+      logger.warning(className, 'remove失败，asset和memory中不存在$path', StackTrace.current);
     }
     return false;
   }
@@ -149,7 +149,7 @@ class AssetItem {
       await File(path).writeAsBytes(content!);
       return true;
     } else if (isFailTip) {
-      logger.warning(className, 'resume失败，dustbin和memory中不存在$path');
+      logger.warning(className, 'resume失败，dustbin和memory中不存在$path', StackTrace.current);
     }
     return false;
   }
@@ -327,7 +327,7 @@ class AssetList {
       ? await ImageAssetItem.readFile(path, lib, options)
       : await AssetItem.readFile(path, lib, options);
     if (asset == null) {
-      if (isFailTip) logger.warning(className, 'add失败，asset中不存在$path');
+      if (isFailTip) logger.warning(className, 'add失败，asset中不存在$path', StackTrace.current);
     } else {
       list[path] = asset;
       if (await asset.dustbinExists) await File(asset.dustbinPath).delete();
@@ -375,7 +375,7 @@ class AssetList {
   }) async {
     final AssetList? assetList = await AssetList.readAssetDir(lib, options);
     if (assetList == null) {
-      logger.warning(className, 'checkAsset失败，assetPaths不存在${options.assetPaths}');
+      logger.warning(className, 'checkAsset失败，assetPaths不存在${options.assetPaths}', StackTrace.current);
     } else {
       for (final AssetItem item in list.values) {
         final AssetItem? asset = assetList.get(item);

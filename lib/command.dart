@@ -6,6 +6,7 @@ import 'package:path/path.dart';
 
 import 'asset.dart';
 import 'lib.dart';
+import 'logger.dart';
 import 'options.dart';
 
 abstract class RunnerCommand extends Command<int> {
@@ -55,6 +56,12 @@ abstract class RunnerCommand extends Command<int> {
   }
 
   SharedOptions get sharedOptions => SharedOptions.create(argResults);
+
+  @override
+  Future<int> run() async {
+    logger.info(sharedOptions.toString());
+    return 0;
+  }
 }
 
 class WatchCommand extends RunnerCommand {
@@ -66,6 +73,8 @@ class WatchCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
+    await super.run();
+
     final Completer<int> completer = Completer();
 
     final Lib lib = Lib(sharedOptions);
@@ -103,11 +112,11 @@ class WatchCommand extends RunnerCommand {
             await list?.writeListFile();
           }
         }
-      } catch (err) {
-        completer.completeError(err);
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
       }
-    }).onError((err) {
-      completer.completeError(err);
+    }).onError((error, stackTrace) {
+      completer.completeError(error, stackTrace ?? StackTrace.current);
     });
 
     return await completer.future;
@@ -123,6 +132,8 @@ class BuildAssetCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
+    await super.run();
+
     final Lib lib = Lib(sharedOptions);
     await lib.init();
 
@@ -141,6 +152,8 @@ class BuildListCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
+    await super.run();
+
     final Lib lib = Lib(sharedOptions);
     await lib.init();
 
@@ -159,6 +172,8 @@ class BuildCleanCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
+    await super.run();
+
     final Lib lib = Lib(sharedOptions);
     await lib.init();
 

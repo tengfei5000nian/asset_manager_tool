@@ -28,19 +28,19 @@ List<String>? formatAssetList(YamlMap? data) {
   if (assets is YamlList) list.addAll(List<String>.from(assets.value));
 
   final fonts = config['fonts'];
-  if (fonts is! YamlList) return list;
+  if (fonts is YamlList) {
+    for (final font in fonts) {
+      if (font is! YamlMap) continue;
 
-  for (final font in fonts) {
-    if (font is! YamlMap) continue;
+      final fontAssets = font['fonts'];
+      if (fontAssets is! YamlList) continue;
 
-    final fontAssets = font['fonts'];
-    if (fontAssets is! YamlList) continue;
+      for (final fontAsset in fontAssets) {
+        if (fontAsset is! YamlMap) continue;
 
-    for (final fontAsset in fontAssets) {
-      if (fontAsset is! YamlMap) continue;
-
-      final asset = fontAsset['asset'];
-      if (asset is String) list.add(asset);
+        final asset = fontAsset['asset'];
+        if (asset is String) list.add(asset);
+      }
     }
   }
 

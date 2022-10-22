@@ -272,16 +272,14 @@ class SharedOptions {
 
   @override
   String toString() {
-    final Map<String, String> data = {};
+    return '''
 
-    data['libPaths'] = libPaths.join(',');
-    data['assetPaths'] = assetPaths.join(',');
-    data['dustbinPath'] = dustbinPath;
-    data['listPath'] = listPath;
-    data['nameReplaces'] = nameReplaces.keys.map((String key) {
-      return '$key:${nameReplaces[key]}';
-    }).join(',');
-    
-    return data.toString();
+  libPaths: ${libPaths.join(', ')}
+  assetPaths: ${assetPaths.join(', ')}
+  dustbinPath: $dustbinPath
+  listPath: $listPath
+  configPath: $configPath
+  nameReplaces: ${nameReplaces.keys.map((String key) => '$key:${nameReplaces[key]}').join(',')}
+  excludePaths: ${excludePaths.join(', ')}''';
   }
 }
