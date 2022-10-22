@@ -43,6 +43,7 @@ asset_manager_tool包暴露了一个binary文件，它可以使用`dart run asse
 - `--list-path`: `'lib/asset_list.dart'` 通过asset资产创建的清单list。
 - `--config-path`: `'pubspec.yaml'` config文件路径。
 - `--name-replace`: `{'libAssets':''}` asset资产实例名替换。
+- `--exclude-path`: `['.*', '.*/**.*', '**/.*', '**/.*/**.*']` 排除监听的文件，可以包含lib-path、asset-path的路径。
 
 ##### 在终端中设置参数示例，优先级第一位
 

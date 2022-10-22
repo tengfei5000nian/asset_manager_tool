@@ -45,6 +45,12 @@ abstract class RunnerCommand extends Command<int> {
         abbr: nameReplaceOption.abbr,
         help: nameReplaceOption.help,
         valueHelp: nameReplaceOption.valueHelp ?? nameReplaceOption.defaultsTo,
+      )
+      ..addMultiOption(
+        excludePathOption.name,
+        abbr: excludePathOption.abbr,
+        help: excludePathOption.help,
+        valueHelp: excludePathOption.valueHelp ?? excludePathOption.defaultsTo,
       );
   }
 

@@ -54,6 +54,11 @@ const Option nameReplaceOption = Option(
   help: 'asset资产实例名替换',
   defaultsTo: 'libAssets:',
 );
+const Option excludePathOption = Option(
+  name: 'exclude-path',
+  help: '排除监听的文件，可以包含lib-path、asset-path的路径',
+  defaultsTo: '.*,.*/**.*,**/.*,**/.*/**.*',
+);
 
 // 执行命令需要携带的参数集
 class SharedOptions {
@@ -63,6 +68,7 @@ class SharedOptions {
   final String listPath;
   final String configPath;
   final Map<String, String?> nameReplaces;
+  final List<String> excludePaths;
 
   SharedOptions({
     required this.libPaths,
@@ -71,6 +77,7 @@ class SharedOptions {
     required this.listPath,
     required this.configPath,
     required this.nameReplaces,
+    required this.excludePaths,
   });
 
   // 创建一个default参数的SharedOptions
@@ -86,6 +93,7 @@ class SharedOptions {
         data[value.first] = value.length >= 2 ? value[1] : null;
         return data;
       }),
+      excludePaths: excludePathOption.defaultsTo.split(','),
     );
   }
 
@@ -104,6 +112,9 @@ class SharedOptions {
       nameReplaces: json?[nameReplaceOption.name] is Map
         ? Map<String, String?>.from(json![nameReplaceOption.name])
         : {},
+      excludePaths: json?[excludePathOption.name] is List
+        ? List<String>.from(json![excludePathOption.name])
+        : [],
     );
   }
 
@@ -128,6 +139,9 @@ class SharedOptions {
       nameReplaces: argResults?[nameReplaceOption.name] is Map
         ? Map<String, String?>.from(argResults![nameReplaceOption.name])
         : {},
+      excludePaths: argResults?[excludePathOption.name] is List
+        ? List<String>.from(argResults![excludePathOption.name])
+        : [],
     );
   }
 
@@ -198,6 +212,13 @@ class SharedOptions {
           : yamlOptions?.nameReplaces.isNotEmpty ?? false
             ? yamlOptions!.nameReplaces
             : defaultOptions.nameReplaces,
+      excludePaths: argOptions.excludePaths.isNotEmpty
+        ? argOptions.excludePaths
+        : toolOptions?.excludePaths.isNotEmpty ?? false
+          ? toolOptions!.excludePaths
+          : yamlOptions?.excludePaths.isNotEmpty ?? false
+            ? yamlOptions!.excludePaths
+            : defaultOptions.excludePaths,
     );
   }
 
@@ -208,12 +229,17 @@ class SharedOptions {
 
   // 地址是否符合asset资产路径
   bool isAssetPath(String path) {
-    return assetPaths.any((String p) => !isListPath(path) && Glob(p).matches(path));
+    return assetPaths.any((String p) => !isExcludePath(path) && Glob(p).matches(path));
   }
 
   // 地址是否符合lib匹配规则
   bool isLibPath(String path) {
-    return libPaths.any((String p) => !isListPath(path) && Glob(p).matches(path));
+    return libPaths.any((String p) => !isExcludePath(path) && Glob(p).matches(path));
+  }
+
+  // 地址是否符合exclude匹配规则
+  bool isExcludePath(String path) {
+    return excludePaths.any((String p) => isListPath(path) || Glob(p).matches(path));
   }
 
   // 获取符合lib匹配规则的所有文件地址
@@ -223,7 +249,7 @@ class SharedOptions {
     for (final String path in this.libPaths) {
       final Glob glob = Glob(path);
       await for (final FileSystemEntity entity in glob.list()) {
-        if (!isListPath(entity.path)) libPaths.add(relative(entity.path, from: current));
+        if (!isExcludePath(entity.path)) libPaths.add(relative(entity.path, from: current));
       }
     }
 
@@ -237,7 +263,7 @@ class SharedOptions {
     for (final String path in this.assetPaths) {
       final Glob glob = Glob(path);
       await for (final FileSystemEntity entity in glob.list()) {
-        if (!isListPath(entity.path)) assetPaths.add(relative(entity.path, from: current));
+        if (!isExcludePath(entity.path)) assetPaths.add(relative(entity.path, from: current));
       }
     }
 
