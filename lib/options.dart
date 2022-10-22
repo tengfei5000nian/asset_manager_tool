@@ -246,12 +246,14 @@ class SharedOptions {
   Future<List<String>> get findLibPaths async {
     final List<String> libPaths = [];
 
-    for (final String path in this.libPaths) {
-      final Glob glob = Glob(path);
-      await for (final FileSystemEntity entity in glob.list()) {
-        if (!isExcludePath(entity.path)) libPaths.add(relative(entity.path, from: current));
-      }
-    }
+    await Future.wait(
+      this.libPaths.map((String path) async {
+        final Glob glob = Glob(path);
+        await for (final FileSystemEntity entity in glob.list()) {
+          if (!isExcludePath(entity.path)) libPaths.add(relative(entity.path, from: current));
+        }
+      })
+    );
 
     return libPaths;
   }
@@ -260,12 +262,14 @@ class SharedOptions {
   Future<List<String>> get findAssetPaths async {
     final List<String> assetPaths = [];
 
-    for (final String path in this.assetPaths) {
-      final Glob glob = Glob(path);
-      await for (final FileSystemEntity entity in glob.list()) {
-        if (!isExcludePath(entity.path)) assetPaths.add(relative(entity.path, from: current));
-      }
-    }
+    await Future.wait(
+      this.assetPaths.map((String path) async {
+        final Glob glob = Glob(path);
+        await for (final FileSystemEntity entity in glob.list()) {
+          if (!isExcludePath(entity.path)) assetPaths.add(relative(entity.path, from: current));
+        }
+      })
+    );
 
     return assetPaths;
   }

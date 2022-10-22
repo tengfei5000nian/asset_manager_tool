@@ -241,9 +241,11 @@ class AssetList {
     );
 
     final List<String> paths = await options.findAssetPaths;
-    for (final String path in paths) {
-      await list.add(path, nowWrite: false);
-    }
+    await Future.wait(
+      paths.map((String path) async {
+        await list.add(path, nowWrite: false);
+      })
+    );
 
     return list;
   }
@@ -377,19 +379,23 @@ class AssetList {
     if (assetList == null) {
       logger.warning(className, 'checkAsset失败，assetPaths不存在${options.assetPaths}', StackTrace.current);
     } else {
-      for (final AssetItem item in list.values) {
-        final AssetItem? asset = assetList.get(item);
-        if (asset == null) {
-          await item.resume();
-        } else {
-          item.content = asset.content;
-        }
-        assetList.list.remove(item.path);
-      }
+      await Future.wait(
+        list.values.map((AssetItem item) async {
+          final AssetItem? asset = assetList.get(item);
+          if (asset == null) {
+            await item.resume();
+          } else {
+            item.content = asset.content;
+          }
+          assetList.list.remove(item.path);
+        })
+      );
 
-      for (final AssetItem item in assetList.list.values) {
-        await item.remove();
-      }
+      await Future.wait(
+        assetList.list.values.map((AssetItem item) async {
+          await item.remove();
+        })
+      );
     }
     if (nowWrite) await writeListFile();
   }
