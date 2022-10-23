@@ -155,8 +155,7 @@ class AssetItem {
   }
 
   @override
-  String toString() => '''
-/* $hash ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('$path');''';
+  String toString() => '''/* $hash ${isUse ? 'Y' : 'N'} */ static const String $name = '$path';''';
 }
 
 // 表示一个图片asset资产的基本数据类
@@ -205,9 +204,7 @@ class ImageAssetItem extends AssetItem {
     required this.height,
   });
 
-  @override
-  String toString() => '''
-/* ${super.hash} ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('${super.path}', $width, $height);''';
+  String toSizeString() => ''''$path': Size($width, $height),''';
 }
 
 // 表示asset资产清单的类
@@ -265,42 +262,42 @@ class AssetList {
     if (content == null) return;
 
     // 解析AssetItem参数
-    final String reArg = '[\\n\\s\'"]*([^\\s\\,\'"]+)[\\s\'"]*,?';
+    final String reArg = '[\'"]{0,1}([^\\s\\;\'"]+)[\'"]{0,1}';
     // 解析AssetItem备注
-    final String reMark = '[\\n\\s]*\\/\\*\\s*([^\\s]+)\\s*(Y|N)\\s*\\*\\/';
+    final String reMark = '[\\n\\s]*\\/\\*\\s*([^\\s]+)\\s+(Y|N)\\s*\\*\\/';
     // 解析AssetItem数据
-    final String reAssetItem = '$reMark[\\n\\s]+static\\s+const\\s+${AssetItem.className}\\s+([\\w\\d]+)\\s+\\=\\s+${AssetItem.className}\\($reArg[\\n\\s]*\\);';
-    // 解析ImageAssetItem数据
-    final String reImageAssetItem = '$reMark[\\n\\s]+static\\s+const\\s+${ImageAssetItem.className}\\s+([\\w\\d]+)\\s+\\=\\s+${ImageAssetItem.className}\\($reArg$reArg$reArg[\\n\\s]*\\);';
-    // 解析AssetItem或ImageAssetItem数据
-    final String reItem = '($reAssetItem|$reImageAssetItem)';
+    final String reAssetItem = '$reMark\\s*static\\s+const\\s+String\\s+([\\w\\d]+)\\s*\\=\\s*$reArg\\s*;';
     // 解析AssetList数据
-    final String reClass = 'abstract\\s+class\\s+$className\\s+\\{$reItem*[\\n\\s]*\\}';
+    final String reClass = 'abstract\\s+class\\s+$className\\s*\\{($reAssetItem)*[\\n\\s]*\\}';
 
     if (!RegExp(reClass).hasMatch(content)) return;
 
-    content
-      .replaceAllMapped(RegExp(reImageAssetItem), (Match match) {
-        final String hash = match.group(1)!;
-        final String name = match.group(3)!;
-        final String path = match.group(4)!;
-        final int width = int.parse(match.group(5)!);
-        final int height = int.parse(match.group(6)!);
-        list[path] = ImageAssetItem(
-          path: path,
-          name: name,
-          hash: hash,
-          width: width,
-          height: height,
-          lib: lib,
-          options: options,
-        );
-        return '';
-      })
-      .replaceAllMapped(RegExp(reAssetItem), (Match match) {
-        final String hash = match.group(1)!;
-        final String name = match.group(3)!;
-        final String path = match.group(4)!;
+    content.replaceAllMapped(RegExp(reAssetItem), (Match match) {
+      final String hash = match.group(1)!;
+      final String name = match.group(3)!;
+      final String path = match.group(4)!;
+
+      // 解析Size参数
+      final String reInt = '[\\n\\s]*(\\d+)\\s*,?';
+      // 解析Size数据
+      final String reSize = ''''$path'\\s*\\:\\s*Size\\($reInt$reInt[\\n\\s]*\\)\\s*,?''';
+
+      if (RegExp(reSize).hasMatch(content)) {
+        content.replaceAllMapped(RegExp(reSize), (Match match) {
+          final int width = int.parse(match.group(1)!);
+          final int height = int.parse(match.group(2)!);
+          list[path] = ImageAssetItem(
+            path: path,
+            name: name,
+            hash: hash,
+            width: width,
+            height: height,
+            lib: lib,
+            options: options,
+          );
+          return '';
+        });
+      } else {
         list[path] = AssetItem(
           path: path,
           name: name,
@@ -308,8 +305,9 @@ class AssetList {
           lib: lib,
           options: options,
         );
-        return '';
-      });
+      }
+      return '';
+    });
   }
 
   // 从list中获取AssetItem列表并根据assetItem.name排序
@@ -415,28 +413,44 @@ class AssetList {
   }
 
   @override
-  String toString() => '''
+  String toString() {
+    final List<AssetItem> assets = this.assets;
+    final List<ImageAssetItem> imgs = [];
+    final List<AssetItem> files = [];
+
+    for (final AssetItem file in assets) {
+      if (file is ImageAssetItem) {
+        imgs.add(file);
+      } else {
+        files.add(file);
+      }
+    }
+
+    return '''
 abstract class $className {
-${assets.map((AssetItem item) => '  $item'.replaceAll('\n', '\n  ')).join('\n')}
+${imgs.map((ImageAssetItem item) => '  $item').join('\n')}
+${files.map((AssetItem item) => '  $item').join('\n')}
 }
 
-class ${AssetItem.className} {
-  final String path;
+const Map<String, Size> _sizes = {
+${imgs.map((ImageAssetItem item) => '  ${item.toSizeString()}').join('\n')}
+};
 
-  const ${AssetItem.className}(
-    this.path,
-  );
+extension AssetStringExtension on String {
+  Size? get size => _sizes[this];
+  int? get width => size?.width;
+  int? get height => size?.height;
 }
 
-class ${ImageAssetItem.className} extends ${AssetItem.className} {
+class Size {
   final int width;
   final int height;
 
-  const ${ImageAssetItem.className}(
-    super.path,
+  const Size(
     this.width,
     this.height,
   );
 }
 ''';
+  }
 }
