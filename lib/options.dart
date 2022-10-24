@@ -59,6 +59,13 @@ const Option excludePathOption = Option(
   help: '排除监听的文件，可以包含lib-path、asset-path的路径',
   defaultsTo: '.*,.*/**.*,**/.*,**/.*/**.*',
 );
+const Option formstTypeOption = Option(
+  name: 'format-type',
+  help: 'asset_list.dart格式类型',
+  defaultsTo: 'value',
+);
+
+enum FormatType { value, model }
 
 // 执行命令需要携带的参数集
 class SharedOptions {
@@ -69,6 +76,7 @@ class SharedOptions {
   final String configPath;
   final Map<String, String?> nameReplaces;
   final List<String> excludePaths;
+  final FormatType? formatType;
 
   SharedOptions({
     required this.libPaths,
@@ -78,6 +86,7 @@ class SharedOptions {
     required this.configPath,
     required this.nameReplaces,
     required this.excludePaths,
+    required this.formatType,
   });
 
   // 创建一个default参数的SharedOptions
@@ -94,6 +103,7 @@ class SharedOptions {
         return data;
       }),
       excludePaths: excludePathOption.defaultsTo.split(','),
+      formatType: FormatType.values.firstWhere((FormatType type) => type.toString().contains(formstTypeOption.defaultsTo))
     );
   }
 
@@ -115,6 +125,9 @@ class SharedOptions {
       excludePaths: json?[excludePathOption.name] is List
         ? List<String>.from(json![excludePathOption.name])
         : [],
+      formatType: json?[formstTypeOption.name] is String
+        ? FormatType.values.firstWhere((FormatType type) => type.toString().contains(json![formstTypeOption.name]))
+        : null,
     );
   }
 
@@ -142,6 +155,9 @@ class SharedOptions {
       excludePaths: argResults?[excludePathOption.name] is List
         ? List<String>.from(argResults![excludePathOption.name])
         : [],
+        formatType: argResults?[formstTypeOption.name] is String
+        ? FormatType.values.firstWhere((FormatType type) => type.toString().contains(argResults![formstTypeOption.name]))
+        : null,
     );
   }
 
@@ -219,6 +235,13 @@ class SharedOptions {
           : yamlOptions?.excludePaths.isNotEmpty ?? false
             ? yamlOptions!.excludePaths
             : defaultOptions.excludePaths,
+      formatType: argOptions.formatType != null
+        ? argOptions.formatType!
+        : toolOptions?.formatType != null
+          ? toolOptions!.formatType
+          : yamlOptions?.formatType != null
+            ? yamlOptions!.formatType
+            : defaultOptions.formatType!,
     );
   }
 
@@ -284,6 +307,7 @@ class SharedOptions {
   listPath: $listPath
   configPath: $configPath
   nameReplaces: ${nameReplaces.keys.map((String key) => '$key:${nameReplaces[key]}').join(',')}
-  excludePaths: ${excludePaths.join(', ')}''';
+  excludePaths: ${excludePaths.join(', ')}
+  formatType: ${formatType.toString().split('.').last}''';
   }
 }

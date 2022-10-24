@@ -4,7 +4,7 @@ import 'package:args/command_runner.dart';
 import 'package:watcher/watcher.dart';
 import 'package:path/path.dart';
 
-import 'asset.dart';
+import 'asset/asset_list.dart';
 import 'lib.dart';
 import 'logger.dart';
 import 'options.dart';
@@ -52,6 +52,12 @@ abstract class RunnerCommand extends Command<int> {
         abbr: excludePathOption.abbr,
         help: excludePathOption.help,
         valueHelp: excludePathOption.valueHelp ?? excludePathOption.defaultsTo,
+      )
+      ..addOption(
+        formstTypeOption.name,
+        help: formstTypeOption.help,
+        valueHelp: formstTypeOption.valueHelp ?? formstTypeOption.defaultsTo,
+        allowed: FormatType.values.map((FormatType type) => type.toString().split('.').last)
       );
   }
 
