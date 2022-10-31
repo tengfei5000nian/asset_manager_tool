@@ -163,19 +163,17 @@ class AssetItem {
   }) async {
     await checkOrCreateDustbin;
 
-    if (await assetExists) {
-      if (useMemory) {
-        await File(path).delete();
-        if (content != null) {
-          await File(dustbinPath).writeAsBytes(content!);
-          return true;
-        } else {
-          return false;
-        }
-      } else {
-        await File(path).rename(dustbinPath);
-        return true;
-      }
+    final bool exists = await assetExists;
+
+    if (exists && !useMemory) {
+      await File(path).rename(dustbinPath);
+      return true;
+    } else if (exists && useMemory && content != null) {
+      await Future.wait([
+        File(path).delete(),
+        File(dustbinPath).writeAsBytes(content!),
+      ]);
+      return true;
     } else if (content != null) {
       await File(dustbinPath).writeAsBytes(content!);
       return true;
@@ -190,19 +188,19 @@ class AssetItem {
     bool useMemory = false,
     bool isFailTip = true,
   }) async {
-    if (await dustbinExists) {
-      if (useMemory) {
-        await File(dustbinPath).delete();
-        if (content != null) {
-          await File(path).writeAsBytes(content!);
-          return true;
-        } else {
-          return false;
-        }
-      } else {
-        await File(dustbinPath).rename(path);
-        return true;
-      }
+    await checkOrCreateDustbin;
+
+    final bool exists = await dustbinExists;
+
+    if (exists && !useMemory) {
+      await File(dustbinPath).rename(path);
+      return true;
+    } else if (exists && useMemory && content != null) {
+      await Future.wait([
+        File(dustbinPath).delete(),
+        File(path).writeAsBytes(content!),
+      ]);
+      return true;
     } else if (content != null) {
       await File(path).writeAsBytes(content!);
       return true;

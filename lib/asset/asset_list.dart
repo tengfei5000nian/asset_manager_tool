@@ -112,12 +112,21 @@ class AssetList {
     final AssetItem? asset = ImageAssetItem.exts.contains(extension(path).substring(1))
       ? await ImageAssetItem.readFile(path, lib, options)
       : await AssetItem.readFile(path, lib, options);
+
     if (asset == null) {
       if (isFailTip) logger.warning(className, 'add失败，asset中不存在$path', StackTrace.current);
     } else {
+      final AssetItem? oldAsset = list[path];
+      if (oldAsset?.hash == asset.hash) return;
+
       list[path] = asset;
-      if (await asset.dustbinExists) await File(asset.dustbinPath).delete();
-      if (nowWrite) await writeListFile();
+
+      await Future.wait([
+        asset.dustbinExists.then((bool exists) async {
+          if (exists) await File(asset.dustbinPath).delete();
+        }),
+        if (nowWrite) writeListFile(),
+      ]);
     }
   }
 
@@ -128,11 +137,16 @@ class AssetList {
     bool nowWrite = true,
     bool isFailTip = true,
   }) async {
-    await list.remove(path)?.remove(
-      useMemory: useMemory,
-      isFailTip: isFailTip,
-    );
-    if (nowWrite) await writeListFile();
+    final AssetItem? asset = list.remove(path);
+    if (asset == null) return;
+
+    await Future.wait([
+      asset.remove(
+        useMemory: useMemory,
+        isFailTip: isFailTip,
+      ),
+      if (nowWrite) writeListFile(),
+    ]);
   }
 
   // 从当前list清单中获取assetItem
