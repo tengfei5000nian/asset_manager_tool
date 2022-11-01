@@ -59,7 +59,7 @@ const Option excludePathOption = Option(
   help: '排除监听的文件，可以包含lib-path、asset-path的路径',
   defaultsTo: '.*,.*/**.*,**/.*,**/.*/**.*',
 );
-const Option formstTypeOption = Option(
+const Option formatTypeOption = Option(
   name: 'format-type',
   help: 'asset_list.dart格式类型',
   defaultsTo: 'value',
@@ -103,7 +103,7 @@ class SharedOptions {
         return data;
       }),
       excludePaths: excludePathOption.defaultsTo.split(','),
-      formatType: FormatType.values.firstWhere((FormatType type) => type.toString().contains(formstTypeOption.defaultsTo))
+      formatType: FormatType.values.firstWhere((FormatType type) => type.toString().contains(formatTypeOption.defaultsTo))
     );
   }
 
@@ -125,8 +125,8 @@ class SharedOptions {
       excludePaths: json?[excludePathOption.name] is List
         ? List<String>.from(json![excludePathOption.name])
         : [],
-      formatType: json?[formstTypeOption.name] is String
-        ? FormatType.values.firstWhere((FormatType type) => type.toString().contains(json![formstTypeOption.name]))
+      formatType: json?[formatTypeOption.name] is String
+        ? FormatType.values.firstWhere((FormatType type) => type.toString().contains(json![formatTypeOption.name]))
         : null,
     );
   }
@@ -155,8 +155,8 @@ class SharedOptions {
       excludePaths: argResults?[excludePathOption.name] is List
         ? List<String>.from(argResults![excludePathOption.name])
         : [],
-        formatType: argResults?[formstTypeOption.name] is String
-        ? FormatType.values.firstWhere((FormatType type) => type.toString().contains(argResults![formstTypeOption.name]))
+        formatType: argResults?[formatTypeOption.name] is String
+        ? FormatType.values.firstWhere((FormatType type) => type.toString().contains(argResults![formatTypeOption.name]))
         : null,
     );
   }
@@ -301,13 +301,15 @@ class SharedOptions {
   String toString() {
     return '''
 
-  libPaths: ${libPaths.join(', ')}
-  assetPaths: ${assetPaths.join(', ')}
-  dustbinPath: $dustbinPath
-  listPath: $listPath
-  configPath: $configPath
-  nameReplaces: ${nameReplaces.keys.map((String key) => '$key:${nameReplaces[key]}').join(',')}
-  excludePaths: ${excludePaths.join(', ')}
-  formatType: ${formatType.toString().split('.').last}''';
+--------- Config Data ---------
+lib-path: ${libPaths.join(', ')}
+asset-path: ${assetPaths.join(', ')}
+dustbin-path: $dustbinPath
+list-path: $listPath
+config-path: $configPath
+name-replace: ${nameReplaces.keys.map((String key) => '$key:${nameReplaces[key]}').join(',')}
+exclude-path: ${excludePaths.join(', ')}
+format-type: ${formatType.toString().split('.').last}
+-------------------------------''';
   }
 }

@@ -8,6 +8,7 @@ import 'asset/asset_list.dart';
 import 'lib.dart';
 import 'logger.dart';
 import 'options.dart';
+import 'queue.dart';
 
 abstract class RunnerCommand extends Command<int> {
   RunnerCommand() : super() {
@@ -54,9 +55,9 @@ abstract class RunnerCommand extends Command<int> {
         valueHelp: excludePathOption.valueHelp ?? excludePathOption.defaultsTo,
       )
       ..addOption(
-        formstTypeOption.name,
-        help: formstTypeOption.help,
-        valueHelp: formstTypeOption.valueHelp ?? formstTypeOption.defaultsTo,
+        formatTypeOption.name,
+        help: formatTypeOption.help,
+        valueHelp: formatTypeOption.valueHelp ?? formatTypeOption.defaultsTo,
         allowed: FormatType.values.map((FormatType type) => type.toString().split('.').last)
       );
   }
@@ -65,7 +66,7 @@ abstract class RunnerCommand extends Command<int> {
 
   @override
   Future<int> run() async {
-    logger.info(sharedOptions.toString());
+    logger.notice(sharedOptions.toString());
     return 0;
   }
 }
@@ -89,22 +90,30 @@ class WatchCommand extends RunnerCommand {
     AssetList? list = await AssetList.readAssetDir(lib, sharedOptions);
     await list?.writeListFile();
 
-    Watcher(current).events.listen((WatchEvent e) async {
-      try {
+    AssetList? newList;
+
+    Watcher(current).events.listen((WatchEvent e) {
+      queue.add(() async {
         if (!isWithin(current, e.path)) return;
         final String changePath = relative(e.path, from: current);
 
         if (sharedOptions.isListPath(changePath)) {
-          final AssetList? newList = await AssetList.readListFile(lib, sharedOptions);
+          newList = await AssetList.readListFile(lib, sharedOptions);
           if (newList.toString() == list.toString()) return;
 
-          await newList?.checkAsset(nowWrite: false);
+          await newList?.checkAsset(
+            oldList: list,
+            nowWrite: false,
+          );
 
           if (newList.toString() == list.toString()) return;
 
-          await newList?.writeListFile();
           list = newList;
+          newList = null;
+          await list?.writeListFile();
         } else if (sharedOptions.isAssetPath(changePath)) {
+          if (newList?.list[changePath] != null) return;
+
           if (e.type == ChangeType.REMOVE) {
             await list?.remove(changePath);
           } else if (e.type == ChangeType.ADD || e.type == ChangeType.MODIFY) {
@@ -118,9 +127,9 @@ class WatchCommand extends RunnerCommand {
             await list?.writeListFile();
           }
         }
-      } catch (error, stackTrace) {
+      }).catchError((error, stackTrace) {
         completer.completeError(error, stackTrace);
-      }
+      });
     }).onError((error, stackTrace) {
       completer.completeError(error, stackTrace ?? StackTrace.current);
     });
@@ -163,8 +172,13 @@ class BuildListCommand extends RunnerCommand {
     final Lib lib = Lib(sharedOptions);
     await lib.init();
 
+    final AssetList? oldList = await AssetList.readAssetDir(lib, sharedOptions);
     final AssetList? list = await AssetList.readListFile(lib, sharedOptions);
-    await list?.checkAsset();
+
+    await list?.checkAsset(
+      oldList: oldList,
+    );
+
     return 0;
   }
 }
@@ -183,9 +197,15 @@ class BuildCleanCommand extends RunnerCommand {
     final Lib lib = Lib(sharedOptions);
     await lib.init();
 
+    final AssetList? oldList = await AssetList.readAssetDir(lib, sharedOptions);
     final AssetList? list = await AssetList.readListFile(lib, sharedOptions);
-    await list?.checkAsset(nowWrite: false);
+
+    await list?.checkAsset(
+      oldList: oldList,
+      nowWrite: false,
+    );
     await list?.clean();
+
     return 0;
   }
 }

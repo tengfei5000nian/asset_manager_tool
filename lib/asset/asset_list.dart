@@ -171,6 +171,7 @@ class AssetList {
 
   // 检查资产清单中的资产，判断是否实际存在或有无用资产，同步数据
   Future<void> checkAsset({
+    AssetList? oldList,
     bool nowWrite = true,
   }) async {
     final AssetList? assetList = await AssetList.readAssetDir(lib, options);
@@ -184,6 +185,7 @@ class AssetList {
             await item.resume();
           } else {
             item.content = asset.content;
+            if (oldList?.get(item) == null) logger.info('add ${item.path}');
           }
           assetList.list.remove(item.path);
         })

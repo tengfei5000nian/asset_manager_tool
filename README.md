@@ -44,6 +44,7 @@ asset_manager_tool包暴露了一个binary文件，它可以使用`dart run asse
 - `--config-path`: `'pubspec.yaml'` config文件路径。
 - `--name-replace`: `{'libAssets':''}` asset资产实例名替换。
 - `--exclude-path`: `['.*', '.*/**.*', '**/.*', '**/.*/**.*']` 排除监听的文件，可以包含lib-path、asset-path的路径。
+- `--format-type`: `value` asset_list.dart格式类型，目前有value、model。
 
 ##### 在终端中设置参数示例，优先级第一位
 
@@ -95,8 +96,16 @@ import 'asset_list.dart';
 
 void main() {
   // 资产路径，assetName由资产路径和参数name-replace决定
+  // 当format-type值为value时
+  print(AssetList.assetName);
+  // 当format-type值为model时
   print(AssetList.assetName.path);
+  
   // 如果是图片，你还可以获得宽、高
+  // 当format-type值为value时
+  print(AssetList.assetName$width);
+  print(AssetList.assetName$height);
+  // 当format-type值为model时
   print(AssetList.assetName.width);
   print(AssetList.assetName.height);
 }
@@ -109,9 +118,24 @@ void main() {
 - 是否使用: `asset_list.dart`中的每条资产信息实例前都有一段注释，里面备注了hash和是否使用，`Y`有使用，`N`没使用。
 
 ```dart
+// 当format-type值为value时
+abstract class AssetList {
+  /* 9b024533 Y */
+  static const String fontsIconfontRegularTtf = 'lib/assets/fonts/iconfont.ttf';
+
+  /* 24d8912f N */
+  static const String imgCoverJpg = 'lib/assets/img/cover.jpg';
+  static const int imgCoverJpg$width = 1200;
+  static const int imgCoverJpg$height = 800;
+
+  /* 1757e9c5 N */
+  static const String optionsDataJson = 'lib/assets/options/data.json';
+}
+
+// 当format-type值为model时
 abstract class AssetList {
   /* 9b024533 Y */ static const AssetItem fontsIconfontRegularTtf = AssetItem('lib/assets/fonts/iconfont.ttf');
-  /* 24d8912f N */ static const ImageAssetItem imgCoverJpg = ImageAssetItem('lib/assets/img/cover.jpg', 1200, 799);
+  /* 24d8912f N */ static const ImageAssetItem imgCoverJpg = ImageAssetItem('lib/assets/img/cover.jpg', 1200, 800);
   /* 1757e9c5 N */ static const AssetItem optionsDataJson = AssetItem('lib/assets/options/data.json');
 }
 ```

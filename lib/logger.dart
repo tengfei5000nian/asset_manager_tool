@@ -8,8 +8,10 @@ class Logger {
   Logger(String name) {
     g.Logger.root.level = g.Level.ALL;
     g.Logger.root.onRecord.listen((g.LogRecord record) {
-      final String msg = '[${record.time}] ${record.loggerName}:${record.message}${record.stackTrace == null ? '' : '\n${record.stackTrace}'}';
+      final String msg = '[${record.time}] ${record.loggerName}: ${record.message}${record.stackTrace == null ? '' : '\n${record.stackTrace}'}';
       if (record.level == g.Level.INFO) {
+        print(white.wrap(msg));
+      } else if (record.level == g.Level.FINER) {
         print(green.wrap(msg));
       } else if (record.level == g.Level.WARNING) {
         print(yellow.wrap(msg));
@@ -23,11 +25,14 @@ class Logger {
   // 输出普通message
   void info(String message) => lg.info(message);
 
+  // 输出通知message
+  void notice(String message) => lg.finer(message);
+
   // 输出警示message
-  void warning(String name, Object error, StackTrace stackTrace) => lg.warning(' $name($error)', error, stackTrace);
+  void warning(String name, Object error, StackTrace stackTrace) => lg.warning('$name($error)', error, stackTrace);
 
   // 输出错误message
-  void severe(String name, Object error, StackTrace stackTrace) => lg.severe(' $name($error)', error, stackTrace);
+  void severe(String name, Object error, StackTrace stackTrace) => lg.severe('$name($error)', error, stackTrace);
 }
 
 final Logger logger = Logger('AssetManagerTool');

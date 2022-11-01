@@ -167,15 +167,18 @@ class AssetItem {
 
     if (exists && !useMemory) {
       await File(path).rename(dustbinPath);
+      logger.info('remove $path to $dustbinPath');
       return true;
     } else if (exists && useMemory && content != null) {
       await Future.wait([
         File(path).delete(),
         File(dustbinPath).writeAsBytes(content!),
       ]);
+      logger.info('remove $path to $dustbinPath');
       return true;
     } else if (content != null) {
       await File(dustbinPath).writeAsBytes(content!);
+      logger.info('remove $path to $dustbinPath');
       return true;
     } else if (isFailTip) {
       logger.warning(className, 'remove失败，asset和memory中不存在$path', StackTrace.current);
@@ -194,15 +197,18 @@ class AssetItem {
 
     if (exists && !useMemory) {
       await File(dustbinPath).rename(path);
+      logger.info('resume $path from $dustbinPath');
       return true;
     } else if (exists && useMemory && content != null) {
       await Future.wait([
         File(dustbinPath).delete(),
         File(path).writeAsBytes(content!),
       ]);
+      logger.info('resume $path from $dustbinPath');
       return true;
     } else if (content != null) {
       await File(path).writeAsBytes(content!);
+      logger.info('resume $path from $dustbinPath');
       return true;
     } else if (isFailTip) {
       logger.warning(className, 'resume失败，dustbin和memory中不存在$path', StackTrace.current);
