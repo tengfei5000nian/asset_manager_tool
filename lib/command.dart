@@ -147,14 +147,15 @@ class BuildAssetCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
-    await super.run();
+    final int code = await super.run();
 
     final Lib lib = Lib(sharedOptions);
     await lib.init();
 
     final AssetList? list = await AssetList.readAssetDir(lib, sharedOptions);
     await list?.writeListFile();
-    return 0;
+
+    return code;
   }
 }
 
@@ -167,19 +168,24 @@ class BuildListCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
-    await super.run();
+    final int code = await super.run();
 
     final Lib lib = Lib(sharedOptions);
     await lib.init();
 
-    final AssetList? oldList = await AssetList.readAssetDir(lib, sharedOptions);
-    final AssetList? list = await AssetList.readListFile(lib, sharedOptions);
+    final List<AssetList?> assetList = await Future.wait([
+      AssetList.readAssetDir(lib, sharedOptions),
+      AssetList.readListFile(lib, sharedOptions),
+    ]);
+
+    final AssetList? oldList = assetList.first;
+    final AssetList? list = assetList.last;
 
     await list?.checkAsset(
       oldList: oldList,
     );
 
-    return 0;
+    return code;
   }
 }
 
@@ -192,13 +198,18 @@ class BuildCleanCommand extends RunnerCommand {
 
   @override
   Future<int> run() async {
-    await super.run();
+    final int code = await super.run();
 
     final Lib lib = Lib(sharedOptions);
     await lib.init();
 
-    final AssetList? oldList = await AssetList.readAssetDir(lib, sharedOptions);
-    final AssetList? list = await AssetList.readListFile(lib, sharedOptions);
+    final List<AssetList?> assetList = await Future.wait([
+      AssetList.readAssetDir(lib, sharedOptions),
+      AssetList.readListFile(lib, sharedOptions),
+    ]);
+
+    final AssetList? oldList = assetList.first;
+    final AssetList? list = assetList.last;
 
     await list?.checkAsset(
       oldList: oldList,
@@ -206,6 +217,6 @@ class BuildCleanCommand extends RunnerCommand {
     );
     await list?.clean();
 
-    return 0;
+    return code;
   }
 }
