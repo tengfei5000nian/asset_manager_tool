@@ -167,6 +167,12 @@ class AssetList {
     if (await file.exists() && await file.readAsString() == content) return;
 
     await file.writeAsString(content);
+
+    final int countY = assets.fold(0, (int count, AssetItem e) {
+      return e.isUse ? count + 1 : count;
+    });
+    final int countN = assets.length - countY;
+    logger.info('write ${options.listPath} Y($countY) N($countN)');
   }
 
   // 检查资产清单中的资产，判断是否实际存在或有无用资产，同步数据

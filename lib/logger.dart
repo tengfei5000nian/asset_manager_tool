@@ -8,15 +8,17 @@ class Logger {
   Logger(String name) {
     g.Logger.root.level = g.Level.ALL;
     g.Logger.root.onRecord.listen((g.LogRecord record) {
-      final String msg = '[${record.time}] ${record.loggerName}: ${record.message}${record.stackTrace == null ? '' : '\n${record.stackTrace}'}';
+      final String? tool = lightCyan.wrap('[${record.time}] ${record.loggerName}:');
+      final String? stackTrace = record.stackTrace == null ? '' : darkGray.wrap('\n${record.stackTrace}');
+      final String message = ' ${record.message}';
       if (record.level == g.Level.INFO) {
-        print(white.wrap(msg));
+        print('$tool${white.wrap(message)}$stackTrace');
       } else if (record.level == g.Level.FINER) {
-        print(green.wrap(msg));
+        print('$tool${green.wrap(message)}$stackTrace');
       } else if (record.level == g.Level.WARNING) {
-        print(yellow.wrap(msg));
+        print('$tool${yellow.wrap(message)}$stackTrace');
       } else if (record.level == g.Level.SEVERE) {
-        print(red.wrap(msg));
+        print('$tool${red.wrap(message)}$stackTrace');
       }
     });
     lg = g.Logger(name);
