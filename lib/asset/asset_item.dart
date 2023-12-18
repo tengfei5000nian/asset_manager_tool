@@ -216,10 +216,12 @@ class AssetItem {
     return false;
   }
 
+  String get outPath => path.replaceAll(RegExp(r'\\+'), '/');
+
   String toValueString() => '''
 /* $hash ${isUse ? 'Y' : 'N'} */
-static const String $name = '$path';''';
+static const String $name = '$outPath';''';
 
   String toModelString() => '''
-/* $hash ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('$path');''';
+/* $hash ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('$outPath');''';
 }
