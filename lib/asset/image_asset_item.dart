@@ -124,5 +124,5 @@ static const int $name\$height = $height;''';
 
   @override
   String toModelString() => '''
-/* ${super.hash} ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('${super.outPath}', $width, $height);''';
+/* ${super.hash} ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('${super.path}', $width, $height);''';
 }

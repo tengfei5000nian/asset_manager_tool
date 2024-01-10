@@ -3,8 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:path/path.dart';
 
+import '../context.dart';
 import '../lib.dart';
 import '../logger.dart';
 import '../options.dart';
@@ -18,11 +18,7 @@ class AssetItem {
   static Future<AssetItem?> readFile(String path, Lib lib, SharedOptions options) async {
     final File file = File(path);
     if (await file.exists()) {
-      final Uint8List content = await file.readAsBytes();
-      final Digest contentDigest = md5.convert(content);
-      final Digest pathDigest = md5.convert(path.codeUnits);
-      final Digest digest = md5.convert('$contentDigest$pathDigest'.codeUnits);
-      final List<String> names = split(path.replaceFirst(rootPrefix(path), '').replaceAll(RegExp('[\\.\\_\\-\\s]+'), '/'));
+      final List<String> names = context.split(path.replaceFirst(context.rootPrefix(path), '').replaceAll(RegExp('[\\.\\_\\-\\s]+'), '/'));
       String name = names.removeAt(0) + names.map((String name) => name
         .toLowerCase()
         .replaceRange(0, 1, name
@@ -30,6 +26,7 @@ class AssetItem {
           .toUpperCase()
         )
       ).join();
+
       for (final String key in options.nameReplaces.keys) {
         final RegExp re = RegExp('^$key');
         if (!re.hasMatch(name)) continue;
@@ -40,14 +37,19 @@ class AssetItem {
         );
         break;
       }
-      return AssetItem(
+
+      final Digest digest = md5.convert(path.codeUnits);
+      final asset = AssetItem(
         path: path,
         name: name,
-        hash: digest.toString().substring(0, 8),
+        hash: digest.toString().substring(0, 16),
         lib: lib,
         options: options,
-        content: content,
       );
+
+      await asset.updateConttent();
+
+      return asset;
     } else {
       return null;
     }
@@ -135,9 +137,9 @@ class AssetItem {
   });
 
   // 当asset资产被删除移到回收文件夹时的地址
-  String get dustbinPath => join(
+  String get dustbinPath => context.join(
     options.dustbinPath,
-    '$hash${extension(path)}'
+    '$hash${context.extension(path)}'
   );
 
   // 判断符合lib匹配规则的文件数据中是否使用了该资产
@@ -216,12 +218,27 @@ class AssetItem {
     return false;
   }
 
-  String get outPath => path.replaceAll(RegExp(r'\\+'), '/');
+  // 从asset资产所在原始路径或回收文件夹更新当前asset资产的文件数据
+  Future<void> updateConttent() async {
+    late File file = File(path);
+
+    if (await file.exists()) {
+      content = await file.readAsBytes();
+    } else {
+      file = File(dustbinPath);
+
+      if (await file.exists()) {
+        content = await file.readAsBytes();
+      } else {
+        logger.warning(className, 'updateConttent失败，path和dustbinPath中不存在$path', StackTrace.current);
+      }
+    }
+  }
 
   String toValueString() => '''
 /* $hash ${isUse ? 'Y' : 'N'} */
-static const String $name = '$outPath';''';
+static const String $name = '$path';''';
 
   String toModelString() => '''
-/* $hash ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('$outPath');''';
+/* $hash ${isUse ? 'Y' : 'N'} */ static const $className $name = $className('$path');''';
 }

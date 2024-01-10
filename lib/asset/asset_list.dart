@@ -1,7 +1,6 @@
 import 'dart:io';
 
-import 'package:path/path.dart';
-
+import '../context.dart';
 import '../lib.dart';
 import '../logger.dart';
 import '../options.dart';
@@ -109,7 +108,7 @@ class AssetList {
     bool nowWrite = true,
     bool isFailTip = true,
   }) async {
-    final AssetItem? asset = ImageAssetItem.exts.contains(extension(path).substring(1))
+    final AssetItem? asset = ImageAssetItem.exts.contains(context.extension(path).substring(1))
       ? await ImageAssetItem.readFile(path, lib, options)
       : await AssetItem.readFile(path, lib, options);
 
@@ -189,6 +188,7 @@ class AssetList {
           final AssetItem? asset = assetList.get(item);
           if (asset == null) {
             await item.resume();
+            if (item.content == null) await item.updateConttent();
           } else {
             item.content = asset.content;
             if (oldList?.get(item) == null) logger.info('add ${item.path}');

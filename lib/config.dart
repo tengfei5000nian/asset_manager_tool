@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:path/path.dart';
 import 'package:yaml/yaml.dart';
 
+import 'context.dart';
 import 'options.dart';
 
 // 将项目中yaml文件里的asset_manager_tool配置解析成SharedOptions参数集
@@ -45,8 +45,8 @@ List<String>? formatAssetList(YamlMap? data) {
   }
 
   return list.map((String path) {
-    if (extension(path).isEmpty) {
-      return join(path, '*.*');
+    if (context.extension(path).isEmpty) {
+      return context.join(path, '*.*');
     } else {
       return path;
     }

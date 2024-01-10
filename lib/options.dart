@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:path/path.dart';
 import 'package:yaml/yaml.dart';
 import 'package:glob/glob.dart';
 import 'package:glob/list_local_fs.dart';
 
 import 'config.dart';
+import 'context.dart';
 
 class Option {
   final String name;
@@ -247,7 +247,7 @@ class SharedOptions {
 
   // 是否是清单list文件地址
   bool isListPath(String path) {
-    return equals(listPath, path);
+    return context.equals(listPath, path);
   }
 
   // 地址是否符合asset资产路径
@@ -273,7 +273,8 @@ class SharedOptions {
       this.libPaths.map((String path) async {
         final Glob glob = Glob(path);
         await for (final FileSystemEntity entity in glob.list()) {
-          if (!isExcludePath(entity.path)) libPaths.add(relative(entity.path, from: current));
+          final String path = context.prettyUri(entity.path);
+          if (!isExcludePath(path)) libPaths.add(path);
         }
       })
     );
@@ -289,7 +290,8 @@ class SharedOptions {
       this.assetPaths.map((String path) async {
         final Glob glob = Glob(path);
         await for (final FileSystemEntity entity in glob.list()) {
-          if (!isExcludePath(entity.path)) assetPaths.add(relative(entity.path, from: current));
+          final String path = context.prettyUri(entity.path);
+          if (!isExcludePath(path)) assetPaths.add(path);
         }
       })
     );

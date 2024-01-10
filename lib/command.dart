@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:args/command_runner.dart';
 import 'package:watcher/watcher.dart';
-import 'package:path/path.dart';
 
 import 'asset/asset_list.dart';
+import 'context.dart';
 import 'lib.dart';
 import 'logger.dart';
 import 'options.dart';
@@ -92,10 +92,10 @@ class WatchCommand extends RunnerCommand {
 
     AssetList? newList;
 
-    Watcher(current).events.listen((WatchEvent e) {
+    Watcher(context.current).events.listen((WatchEvent e) {
       queue.add(() async {
-        if (!isWithin(current, e.path)) return;
-        final String changePath = relative(e.path, from: current);
+        if (!context.isWithin(context.current, e.path)) return;
+        final String changePath = context.prettyUri(e.path);
 
         if (sharedOptions.isListPath(changePath)) {
           newList = await AssetList.readListFile(lib, sharedOptions);
@@ -112,16 +112,19 @@ class WatchCommand extends RunnerCommand {
           newList = null;
           await list?.writeListFile();
         } else if (sharedOptions.isAssetPath(changePath)) {
-          if (newList?.list[changePath] != null) return;
-
           if (e.type == ChangeType.REMOVE) {
+            if (list?.list[changePath] == null) return;
+
             await list?.remove(changePath);
           } else if (e.type == ChangeType.ADD || e.type == ChangeType.MODIFY) {
+            if (list?.list[changePath] != null) return;
+
             await list?.add(changePath);
           }
         } else if (sharedOptions.isLibPath(changePath)) {
           if (e.type == ChangeType.REMOVE) {
             await lib.remove(changePath);
+            await list?.writeListFile();
           } else if (e.type == ChangeType.ADD || e.type == ChangeType.MODIFY) {
             await lib.add(changePath);
             await list?.writeListFile();

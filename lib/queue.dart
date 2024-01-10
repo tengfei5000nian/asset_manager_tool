@@ -6,7 +6,7 @@ class Queue {
   bool runner = false;
 
   Future<void> execute([bool loop = false]) async {
-    if (!loop && runner) return;
+    if (runner) return;
     runner = true;
 
     if (list.isEmpty) {
@@ -14,17 +14,18 @@ class Queue {
       return;
     }
 
-    final FutureFunction fn = list[0];
-    await fn();
+    await list.first();
 
     list.removeAt(0);
 
-    await execute(true);
+    runner = false;
+
+    if (loop) await execute(loop);
   }
 
   Future<void> add(FutureFunction fn) async {
     list.add(fn);
-    await execute();
+    await execute(true);
   }
 }
 

@@ -1,10 +1,10 @@
 name: asset_manager_tool
 description: 这个包的目的是帮助我们管理资产文件，并给出提示资产文件是否在项目中使用到。
-version: 1.0.8
+version: 1.0.9
 homepage: https://github.com/tengfei5000nian/asset_manager_tool
 
 environment:
-  sdk: '>=2.17.6 <3.0.0'
+  sdk: '>=2.17.6 <4.0.0'
 
 platforms:
   linux:
@@ -13,7 +13,7 @@ platforms:
 
 dependencies:
   args: ^2.3.1
-  watcher: ^1.0.1
+  watcher: ^1.1.0
   logging: ^1.1.0
   yaml: ^3.1.1
   path: ^1.8.2
